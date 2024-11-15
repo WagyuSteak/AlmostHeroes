@@ -50,7 +50,24 @@ public abstract class EnemyBase : MonoBehaviour
         animator = GetComponent<Animator>();
     }
 
-    public void SetCalculatedIntermediatePosition(Vector2Int position)
+    protected virtual void Update()
+    {
+        // Check if the 'G' key is pressed
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            // Logic to execute when 'G' key is pressed
+            OnGKeyPressed();
+        }
+    }
+
+    private void OnGKeyPressed()
+    {
+
+
+        Debug.Log("G key was pressed!");
+    }
+
+        public void SetCalculatedIntermediatePosition(Vector2Int position)
     {
         calculatedIntermediatePosition = position;
         Debug.Log($"Calculated intermediate position set to: {calculatedIntermediatePosition}");
@@ -61,7 +78,7 @@ public abstract class EnemyBase : MonoBehaviour
         return calculatedIntermediatePosition;
     }
 
-    private Vector2Int GetAdjacentPositionNearTarget(Vector2Int targetGridPosition)
+    protected virtual Vector2Int GetAdjacentPositionNearTarget(Vector2Int targetGridPosition)
     {
         // Possible moves for adjacency (up, down, left, right)
         Vector2Int[] directions = {
@@ -188,7 +205,7 @@ public abstract class EnemyBase : MonoBehaviour
         return nearestCharacter;
     }
 
-    protected CharacterBase SelectTargetByPriority(List<CharacterBase> detectedTargets)
+    protected virtual CharacterBase SelectTargetByPriority(List<CharacterBase> detectedTargets)
     {
         // Priority logic: Prefer ranged targets first, then closest by distance
         List<CharacterBase> rangedTargets = detectedTargets.Where(t => t.IsRanged).ToList();

@@ -29,6 +29,13 @@ public class TurnManager : MonoBehaviour
 
     public List<int> activatedCellCounts = new List<int>(); // 각 캐릭터가 활성화한 셀의 개수를 저장하는 리스트
 
+    // Add lists for each enemy type
+    private List<SpecialEnt> specialEnts = new List<SpecialEnt>();
+    private List<Ent> ents = new List<Ent>();
+    private List<FireSlime> fireSlimes = new List<FireSlime>();
+    private List<Slime> slimes = new List<Slime>();
+    private List<Ghost> ghosts = new List<Ghost>();
+
     public CharacterBase character;
 
     void Awake()
@@ -40,6 +47,29 @@ public class TurnManager : MonoBehaviour
         isCharacterTurn = false;
 
         uiManager = FindObjectOfType<UIManager>(); // UIManager 참조 획득
+    }
+
+    // Call this during enemy initialization or Start
+    public void RegisterEnemy(EnemyBase enemy)
+    {
+        switch (enemy)
+        {
+            case SpecialEnt specialEnt:
+                specialEnts.Add(specialEnt);
+                break;
+            case Ent ent:
+                ents.Add(ent);
+                break;
+            case FireSlime fireSlime:
+                fireSlimes.Add(fireSlime);
+                break;
+            case Slime slime:
+                slimes.Add(slime);
+                break;
+            case Ghost ghost:
+                ghosts.Add(ghost);
+                break;
+        }
     }
 
     void Start()
@@ -87,6 +117,8 @@ public class TurnManager : MonoBehaviour
         sylph.SylphTurn();
         isSylphTurn = true;
 
+        List<EnemyBase> enemies = new List<EnemyBase>(FindObjectsOfType<EnemyBase>());
+
         // 모든 캐릭터에 대해 CharacterReturn 호출
         foreach (var character in characters)
         {
@@ -96,10 +128,12 @@ public class TurnManager : MonoBehaviour
         // 적 타겟 선택 및 경로 계산
         foreach (EnemyBase enemy in FindObjectsOfType<EnemyBase>())
         {
-            enemy.SelectTarget();
-            enemy.CalculatePath(enemy.CurrentGridPosition);
+            enemy.SelectTarget(); // Select the target for each enemy
+            Vector2Int intermediatePosition = enemy.CalculateIntermediatePosition(enemies); // Calculate intermediate position
+            enemy.SetCalculatedIntermediatePosition(intermediatePosition); // Optionally store this position in the enemy
         }
     }
+
     public void EndSylphTurn(List<CharacterBase> encounteredCharacters)
     {
         if (encounteredCharacters.Count > 0)
@@ -289,24 +323,31 @@ public class TurnManager : MonoBehaviour
 
     private IEnumerator HandleEnemyMovement()
     {
-        // Get all enemies
-        EnemyBase[] enemies = FindObjectsOfType<EnemyBase>();
+        // Process enemies in the specified order
+        yield return HandleEnemies(specialEnts);
+        yield return HandleEnemies(ents);
+        yield return HandleEnemies(fireSlimes);
+        yield return HandleEnemies(slimes);
+        yield return HandleEnemies(ghosts);
 
-        // Create a list to track active coroutines
-        List<Coroutine> activeCoroutines = new List<Coroutine>();
+        // Proceed to Sylph's turn after all enemy movements are complete
+        StartSylphTurn();
+    }
 
-        // Start each enemy movement and add it to the active coroutines list
-        foreach (EnemyBase enemy in enemies)
+    private IEnumerator HandleEnemies<T>(List<T> enemies) where T : EnemyBase
+    {
+        foreach (T enemy in enemies)
         {
-            Coroutine moveCoroutine = StartCoroutine(enemy.MoveTowardsTargetGridBased());
-            activeCoroutines.Add(moveCoroutine);
+            Vector2Int targetPosition = enemy.GetCalculatedIntermediatePosition(); // Add this method if not present
+
+            // Move to the calculated intermediate position
+            yield return StartCoroutine(enemy.MoveToCalculatedPosition(targetPosition));
+            // Add any other behavior here, like attacking if in range
+            enemy.AttackIfInRange();
         }
 
-        // Wait for all coroutines to finish
-        foreach (Coroutine coroutine in activeCoroutines)
-        {
-            yield return coroutine;
-        }
+        // Proceed to Sylph's turn after all enemy movements are complete
+        StartSylphTurn();
 
         if (uiManager != null)
         {
@@ -315,10 +356,11 @@ public class TurnManager : MonoBehaviour
 
         // Proceed to Sylph's turn after all enemy movements are complete
         StartSylphTurn();
+
     }
 
-    // 'e' 키를 눌렀을 때 캐릭터의 최근 활성화된 셀을 취소하는 메서드
-    public void UndoLastCharacterAction()
+// 'e' 키를 눌렀을 때 캐릭터의 최근 활성화된 셀을 취소하는 메서드
+public void UndoLastCharacterAction()
     {
         if (currentCharacterIndex > 0 && currentCharacterIndex <= activatedCellCounts.Count)
         {
@@ -327,6 +369,7 @@ public class TurnManager : MonoBehaviour
 
             CharacterBase beforeCharacter = activeCharacters[currentCharacterIndex - 1]; // 최근 턴을 가진 캐릭터
             int cellsToDeactivate = activatedCellCounts[currentCharacterIndex - 1]; // 비활성화할 셀 수
+            Debug.Log(cellsToDeactivate);
 
             int startIndex = beforeCharacter.GetActivatedCellsCount() - cellsToDeactivate; // 시작 인덱스 계산
             beforeCharacter.RemoveActivatedCells(startIndex, cellsToDeactivate); // 셀 비활성화

@@ -1,0 +1,270 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEditor.Searcher;
+using UnityEngine;
+using UnityEngine.TextCore.Text;
+
+public class TurnManager : MonoBehaviour
+{
+    public GridManager gridManager;
+    public PrefabSpawner prefabSpawner;
+    private bool isSylphTurn;
+    private bool isCharacterTurn;
+
+    private Sylph sylph;
+    private int charactersPlaced = 0;
+    private List<CharacterBase> characters = new List<CharacterBase>();
+    private List<CharacterBase> activeCharacters = new List<CharacterBase>();
+    private int currentCharacterIndex = 0;
+
+    private List<CharacterBase> characterTargets = new List<CharacterBase>();
+    private List<EnemyBase> enemyTargets = new List<EnemyBase>();
+    private Dictionary<CharacterBase, (List<CharacterBase> characterTargets, List<EnemyBase> enemyTargets)> characterTargetMap = new Dictionary<CharacterBase, (List<CharacterBase>, List<EnemyBase>)>();
+
+    private List<int> activatedCellCounts = new List<int>(); // 각 캐릭터가 활성화한 셀의 개수를 저장하는 리스트
+
+    CharacterBase character;
+
+    void Awake()
+    {
+        gridManager.GenerateGrid();
+        gridManager.SpawnSylph();
+        StartStage();
+        isSylphTurn = false;
+        isCharacterTurn = false;
+    }
+
+    void Start()
+    {
+        sylph = FindObjectOfType<Sylph>();
+    }
+
+    private void Update()
+    {
+        if (isCharacterTurn && Input.GetKeyDown(KeyCode.Q))
+        {
+            EndCharacterTurn();
+        }
+
+        // 추가된 로직: 'e' 키를 눌렀을 때 캐릭터의 최근 행동을 취소하고 다시 턴을 시작
+        if (isCharacterTurn && Input.GetKeyDown(KeyCode.E))
+        {
+            UndoLastCharacterAction();
+        }
+    }
+
+    public void OnCharacterPlaced(CharacterBase character)
+    {
+        charactersPlaced++;
+        activeCharacters.Add(character);
+        Debug.Log($"캐릭터 배치 완료: 현재 {charactersPlaced}명 배치됨");
+
+        if (charactersPlaced >= 4)
+        {
+            Debug.Log("모든 캐릭터 배치 완료, 실프의 턴 시작");
+            gridManager.ResetGridColors();
+            StartSylphTurn();
+        }
+    }
+
+    private void StartStage()
+    {
+        sylph = gridManager.sylphInstance;
+    }
+
+    private void StartSylphTurn()
+    {
+        characters.AddRange(FindObjectsOfType<CharacterBase>());
+        Debug.Log("실프 이동 턴 시작");
+
+        sylph.ClearEncounteredCharacters();
+        sylph.SetControllable(true);
+        sylph.SylphTurn();
+        isSylphTurn = true;
+
+        // Execute target selection and path calculation
+        foreach (EnemyBase enemy in FindObjectsOfType<EnemyBase>())
+        {
+            enemy.SelectTarget(); // Select the target for each enemy
+            enemy.CalculatePath(enemy.CurrentGridPosition); // Calculate path to the target
+        }
+    }
+    public void EndSylphTurn(List<CharacterBase> encounteredCharacters)
+    {
+        if (encounteredCharacters.Count > 0)
+        {
+            CharacterBase firstEncountered = encounteredCharacters[0];
+
+            // 첫 번째 만난 캐릭터 유형에 따라 고정된 수치를 적용
+            if (firstEncountered is Warrior)
+            {
+                foreach (var character in encounteredCharacters)
+                {
+                    character.Shield = Mathf.Min(character.Shield + 1, 1); // 쉴드 1 고정 증가
+                }
+                Debug.Log("첫 번째로 만난 캐릭터가 Warrior여서 쉴드 +1 적용");
+            }
+            else if (firstEncountered is Acher)
+            {
+                foreach (var character in encounteredCharacters)
+                {
+                    character.MoveCount = Mathf.Min(character.MoveCount + 2, character.MoveCount + 2); // 이동 횟수 2 고정 증가
+                }
+                Debug.Log("첫 번째로 만난 캐릭터가 Archer여서 MoveCount +1 적용");
+            }
+            else if (firstEncountered is Magician)
+            {
+                sylph.currentMana = Mathf.Min(sylph.currentMana + 1, sylph.maxMana); // 실프의 마나 +1 증가 = UI 표시 용도 어차피 초기값으로 돌아감
+                foreach (var character in encounteredCharacters)
+                {
+                    character.mana = Mathf.Min(character.mana + 1, character.mana + 1); // 캐릭터에게도 전달
+                }
+                Debug.Log("첫 번째로 만난 캐릭터가 Magician여서 실프의 마나 +1 적용");
+            }
+            else if (firstEncountered is Priest)
+            {
+                foreach (var character in encounteredCharacters)
+                {
+                    character.Health = Mathf.Min(character.Health + 1, character.MaxHealth); // 체력 1 고정 증가
+                }
+                Debug.Log("첫 번째로 만난 캐릭터가 Priest여서 Health +1 적용");
+            }
+        }
+        sylph.SetControllable(false);
+        isSylphTurn = false;
+        Debug.Log("실프 턴 종료");
+
+        activeCharacters = sylph.GetEncounteredCharacters();
+        if (activeCharacters.Count > 0)
+        {
+            currentCharacterIndex = 0;
+            StartCharacterTurn();
+        }
+        else
+        {
+            Debug.Log("마주친 캐릭터가 없어 턴을 종료합니다.");
+            ResetTurn();
+        }
+    }
+
+    public void StartCharacterTurn()
+    {
+        if (currentCharacterIndex < activeCharacters.Count)
+        {
+            isCharacterTurn = true;
+            CharacterBase currentCharacter = activeCharacters[currentCharacterIndex];
+            Debug.Log($"{currentCharacter.name}의 턴 시작");
+            currentCharacter.SetControllable(true); // 현재 캐릭터 조작 가능 설정
+            // 캐릭터의 턴 로직 실행...
+        }
+        else
+        {
+            Debug.Log("모든 캐릭터의 턴이 종료되었습니다.");
+            StartCoroutine(MoveAllCharactersSequentially());
+            ResetTurn(); 
+        }
+    }
+
+    public void EndCharacterTurn()
+    {
+        if (isCharacterTurn)
+        {
+            CharacterBase currentCharacter = activeCharacters[currentCharacterIndex];
+            currentCharacter.SetControllable(false); // 현재 캐릭터 조작 비활성화
+            Debug.Log($"{currentCharacter.name}의 턴 종료");
+            // 이동을 시작하기 전에 공격 범위 내 타겟을 한 번만 확인
+            currentCharacter.CollectAttackTargets(this);
+
+            activatedCellCounts.Add(currentCharacter.GetActivatedCellsCount());
+
+            currentCharacterIndex++; // 다음 캐릭터로 이동
+            if (currentCharacterIndex < activeCharacters.Count)
+            {
+                StartCharacterTurn(); // 다음 캐릭터 턴 시작
+            }
+            else
+            {
+                StartCoroutine(MoveAllCharactersSequentially()); // 모든 캐릭터 이동 시작
+            }
+        }
+    }
+
+    // 타겟 리스트 저장 메서드
+    public void SetCharacterTargets(CharacterBase character, List<CharacterBase> characterTargets, List<EnemyBase> enemyTargets)
+    {
+        characterTargetMap[character] = (characterTargets, enemyTargets);
+        Debug.Log($"{character.name}의 타겟 리스트가 저장되었습니다.");
+    }
+
+    private IEnumerator MoveAllCharactersSequentially()
+    {
+
+        foreach (CharacterBase character in activeCharacters)
+        {
+            yield return StartCoroutine(character.StartMovement()); // 각 캐릭터의 이동 실행
+        }
+        isCharacterTurn = false;
+        Debug.Log("모든 캐릭터의 이동이 완료되었습니다.");
+        ResetTurn();
+    }
+
+    public void ResetTurn()
+    {
+        gridManager.ClearActivatedCells();
+        EnemyTurn();
+    }
+    public void EnemyTurn()
+    {
+        Debug.Log("적 턴이 시작됩니다.");
+        StartCoroutine(HandleEnemyMovement());
+    }
+
+    private IEnumerator HandleEnemyMovement()
+    {
+        // Get all enemies
+        EnemyBase[] enemies = FindObjectsOfType<EnemyBase>();
+
+        // Create a list to track active coroutines
+        List<Coroutine> activeCoroutines = new List<Coroutine>();
+
+        // Start each enemy movement and add it to the active coroutines list
+        foreach (EnemyBase enemy in enemies)
+        {
+            Coroutine moveCoroutine = StartCoroutine(enemy.MoveTowardsTargetGridBased());
+            activeCoroutines.Add(moveCoroutine);
+        }
+
+        // Wait for all coroutines to finish
+        foreach (Coroutine coroutine in activeCoroutines)
+        {
+            yield return coroutine;
+        }
+
+        // Proceed to Sylph's turn after all enemy movements are complete
+        StartSylphTurn();
+    }
+
+    // 'e' 키를 눌렀을 때 캐릭터의 최근 활성화된 셀을 취소하는 메서드
+    public void UndoLastCharacterAction()
+    {
+        if (currentCharacterIndex > 0 && currentCharacterIndex <= activatedCellCounts.Count)
+        {
+            CharacterBase currentCharacter = activeCharacters[currentCharacterIndex];
+            currentCharacter.SetControllable(false);
+
+            CharacterBase beforeCharacter = activeCharacters[currentCharacterIndex - 1]; // 최근 턴을 가진 캐릭터
+            int cellsToDeactivate = activatedCellCounts[currentCharacterIndex - 1]; // 비활성화할 셀 수
+
+            int startIndex = beforeCharacter.GetActivatedCellsCount() - cellsToDeactivate; // 시작 인덱스 계산
+            beforeCharacter.RemoveActivatedCells(startIndex, cellsToDeactivate); // 셀 비활성화
+
+            activatedCellCounts.RemoveAt(currentCharacterIndex - 1);
+
+            currentCharacterIndex--; // 이전 캐릭터로 인덱스를 되돌림
+
+            StartCharacterTurn(); // 이전 캐릭터의 턴을 재시작
+
+            Debug.Log("취소가 시작되었습니다.");
+        }
+    }
+}
