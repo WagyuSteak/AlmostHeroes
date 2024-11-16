@@ -14,7 +14,7 @@ public class Ent : EnemyBase
 
         HP = 3; // Set health points
         MoveCount = 2; // Set number of tiles the enemy can move
-        AttackDamage = 1; // You can adjust attack damage here if needed
+        AttackDamage = 0; // You can adjust attack damage here if needed
 
         FindObjectOfType<TurnManager>().RegisterEnemy(this);
     }

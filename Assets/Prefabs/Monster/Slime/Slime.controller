@@ -8,7 +8,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Armature_001_Slime_move
-  m_Speed: 1.3
+  m_Speed: 1.2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 4057349081382607513}
@@ -158,9 +158,9 @@ AnimatorStateTransition:
   m_Mute: 0
   m_IsExit: 0
   serializedVersion: 3
-  m_TransitionDuration: 0.25
-  m_TransitionOffset: 0
-  m_ExitTime: 0.75
+  m_TransitionDuration: 0.077956975
+  m_TransitionOffset: 0.13688649
+  m_ExitTime: 0.9205376
   m_HasExitTime: 0
   m_HasFixedDuration: 1
   m_InterruptionSource: 0
@@ -220,9 +220,9 @@ AnimatorStateTransition:
   m_Mute: 0
   m_IsExit: 0
   serializedVersion: 3
-  m_TransitionDuration: 0.25
-  m_TransitionOffset: 0.201176
-  m_ExitTime: 0.73913044
+  m_TransitionDuration: 0.04705304
+  m_TransitionOffset: 0.18862335
+  m_ExitTime: 0.90768254
   m_HasExitTime: 0
   m_HasFixedDuration: 1
   m_InterruptionSource: 0

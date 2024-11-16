@@ -2365,15 +2365,15 @@ MonoBehaviour:
     gridPosition: {x: 7, y: 7}
     rotation: {x: 0, y: -90, z: 0}
     additionalHeight: 0.6
-  - enemyPrefab: {fileID: 9116783924183977227, guid: 94c8f1594b6e0ea4597bf847cc5a91cd, type: 3}
+  - enemyPrefab: {fileID: 2203195393311412101, guid: 6d4c0b5820364114bbb9edd4c7bdab39, type: 3}
     gridPosition: {x: 7, y: 1}
-    rotation: {x: -90, y: 270, z: 0}
+    rotation: {x: 0, y: 270, z: 0}
     additionalHeight: 0.6
   - enemyPrefab: {fileID: 7791694350161261551, guid: 3a15892a7ec04d149a85a00b08d5ee47, type: 3}
     gridPosition: {x: 7, y: 3}
     rotation: {x: 0, y: 270, z: 0}
     additionalHeight: 0.6
-  - enemyPrefab: {fileID: 759943340629439369, guid: e4f20f2ff30cc024ea5a2fe6b06eb965, type: 3}
+  - enemyPrefab: {fileID: 7791694350161261551, guid: 3a15892a7ec04d149a85a00b08d5ee47, type: 3}
     gridPosition: {x: 7, y: 5}
     rotation: {x: 0, y: 270, z: 0}
     additionalHeight: 0.6

@@ -20,13 +20,14 @@ public enum EnemyType
 public abstract class EnemyBase : MonoBehaviour
 {
     // Core attributes
-    public int HP = 3; // Health points
-    public int MoveCount = 2; // Number of tiles enemy can move
-    public int AttackDamage = 1; // Damage dealt to player
-    public int DetectRange = 2; // Default detection range for detecting targets
-    public int AttackRange = 1; // Range for attacking (adjacent tiles)
-    public float moveSpeed = 5f;
-    public float rotationSpeed = 10f;
+    public int HP; // Health points
+    public int MoveCount; // Number of tiles enemy can move
+    public int MaxMoveCount { get; protected set; } // Allow derived classes to set it
+    public int AttackDamage;// Damage dealt to player
+    public int DetectRange; // Default detection range for detecting targets
+    public int AttackRange; // Range for attacking (adjacent tiles)
+    public float moveSpeed;
+    public float rotationSpeed = 20f;
 
     public Vector2Int CurrentGridPosition;
     protected GridManager gridManager;
@@ -48,6 +49,9 @@ public abstract class EnemyBase : MonoBehaviour
         gridManager.AddEnemyPosition(CurrentGridPosition, gameObject);
 
         animator = GetComponent<Animator>();
+
+        // Initialize MaxMoveCount to the same value as MoveCount at the start
+        MaxMoveCount = MoveCount;
     }
 
     protected virtual void Update()
@@ -187,6 +191,7 @@ public abstract class EnemyBase : MonoBehaviour
 
         return Target;
     }
+
     protected CharacterBase SelectNearestCharacter(List<CharacterBase> characters)
     {
         CharacterBase nearestCharacter = null;
@@ -245,7 +250,7 @@ public abstract class EnemyBase : MonoBehaviour
 
     public List<Vector2Int> CalculatePathToTarget(Vector2Int start, Vector2Int targetGridPosition)
     {
-        MoveCount = 2;
+        MoveCount = MaxMoveCount; // Reset MoveCount to MaxMoveCount
 
         List<Vector2Int> path = new List<Vector2Int>();
         Vector2Int currentPosition = start;
@@ -343,7 +348,7 @@ public abstract class EnemyBase : MonoBehaviour
         return CurrentGridPosition; // This should be replaced with logic to fetch actual destination
     }
 
-    public Vector2Int CalculateIntermediatePosition(List<EnemyBase> enemies)
+    public Vector2Int CalculateIntermediatePosition(List<EnemyBase> enemies) 
     {
         // Check if any characters are in attack range before moving
         if (IsCharacterInAttackRange())
@@ -370,20 +375,6 @@ public abstract class EnemyBase : MonoBehaviour
 
     public IEnumerator MoveToCalculatedPosition(Vector2Int targetPosition)
     {
-        // Ensure you have an Animator component attached to your GameObject
-        Animator animator = GetComponent<Animator>();
-        if (animator == null)
-        {
-            Debug.LogWarning("No Animator component found on this GameObject. Movement animation will not be triggered.");
-        }
-
-        // Trigger move animation before starting movement
-        if (MoveCount > 0 && animator != null)
-        {
-            animator.SetBool("isMoving", true); // Use a bool parameter for movement
-            yield return null; // Allow animator state to update before moving
-        }
-
         Vector2Int currentGridPosition = CurrentGridPosition;
         List<Vector2Int> path = CalculatePathToTarget(CurrentGridPosition, targetPosition); // Get path to the target
 
@@ -393,6 +384,12 @@ public abstract class EnemyBase : MonoBehaviour
             if (MoveCount <= 0)
             {
                 break;
+            }
+
+            // Trigger move animation
+            if (animator != null)
+            {
+                animator.SetBool("isMoving", true); // Turn on the move animation
             }
 
             // Check for characters in attack range during movement
@@ -446,6 +443,12 @@ public abstract class EnemyBase : MonoBehaviour
             // Snap to target position to ensure perfect alignment
             transform.position = targetWorldPosition;
 
+            // Turn off the move animation after each step
+            if (animator != null)
+            {
+                animator.SetBool("isMoving", false);
+            }
+
             // Optional: Add a brief pause between moves
             yield return new WaitForSeconds(0.25f); // Adjust the duration as desired (e.g., 0.1f seconds)
 
@@ -465,12 +468,13 @@ public abstract class EnemyBase : MonoBehaviour
             }
         }
 
-        // Stop move animation when done moving
+        // Ensure move animation is stopped at the end
         if (animator != null)
         {
             animator.SetBool("isMoving", false); // Reset movement animation state
         }
     }
+
 
 
     // Method to check if any characters are within attack range

@@ -5,15 +5,21 @@ using UnityEngine;
 public class Ghost : EnemyBase
 {
     // Override detection range and attack range settings
+
     protected override void Start()
     {
+        // Call the base class Start() to ensure common initialization logic is run
         base.Start();
 
-        HP = 3; // Set health points
-        MoveCount = 1; // Set number of tiles the enemy can move
-        AttackDamage = 1; // You can adjust attack damage here if needed
+        // Set unique values for Ghost
+        HP = 3;
+        MaxMoveCount = 1;
+        AttackDamage = 0;
         DetectRange = 7; // 7x7 area
         AttackRange = 3; // Attack range of 3 tiles away (no diagonal)
+        moveSpeed = 2f;
+
+        FindObjectOfType<TurnManager>().RegisterEnemy(this);
     }
 
     // Override target selection priority logic
