@@ -2361,19 +2361,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemiesToSpawn:
-  - enemyPrefab: {fileID: 6556877053528096081, guid: fb8f3ce5e9360944690a46210a0671b6, type: 3}
+  - enemyPrefab: {fileID: 8394970583006884089, guid: eb26dd6e4286f4b4ab69682080630318, type: 3}
     gridPosition: {x: 7, y: 7}
     rotation: {x: 0, y: -90, z: 0}
     additionalHeight: 0.6
-  - enemyPrefab: {fileID: 2203195393311412101, guid: 6d4c0b5820364114bbb9edd4c7bdab39, type: 3}
+  - enemyPrefab: {fileID: 8394970583006884089, guid: eb26dd6e4286f4b4ab69682080630318, type: 3}
     gridPosition: {x: 7, y: 1}
     rotation: {x: 0, y: 270, z: 0}
     additionalHeight: 0.6
-  - enemyPrefab: {fileID: 7791694350161261551, guid: 3a15892a7ec04d149a85a00b08d5ee47, type: 3}
+  - enemyPrefab: {fileID: 6556877053528096081, guid: fb8f3ce5e9360944690a46210a0671b6, type: 3}
     gridPosition: {x: 7, y: 3}
     rotation: {x: 0, y: 270, z: 0}
     additionalHeight: 0.6
-  - enemyPrefab: {fileID: 7791694350161261551, guid: 3a15892a7ec04d149a85a00b08d5ee47, type: 3}
+  - enemyPrefab: {fileID: 6556877053528096081, guid: fb8f3ce5e9360944690a46210a0671b6, type: 3}
     gridPosition: {x: 7, y: 5}
     rotation: {x: 0, y: 270, z: 0}
     additionalHeight: 0.6

@@ -25,28 +25,16 @@ public class Ghost : EnemyBase
     // Override target selection priority logic
     protected override CharacterBase SelectTargetByPriority(List<CharacterBase> detectedTargets)
     {
-        // If only one character is detected, select it as the target
-        if (detectedTargets.Count == 1)
+        List<CharacterBase> rangedTargets = detectedTargets.Where(t => t.IsRanged).ToList();
+        List<CharacterBase> meleeTargets = detectedTargets.Where(t => !t.IsRanged).ToList();
+
+        if (rangedTargets.Count > 0)
         {
-            return detectedTargets[0];
+            if (rangedTargets.Count == 1) return rangedTargets[0];
+            return rangedTargets.OrderBy(t => Vector2Int.Distance(CurrentGridPosition, gridManager.GetGridPosition(t.transform.position))).First();
         }
 
-        // If multiple characters are detected, prioritize based on health
-        detectedTargets = detectedTargets.OrderBy(t => t.Health).ToList();
-        int lowestHealth = detectedTargets.First().Health;
-
-        // Filter for targets with the same lowest health
-        List<CharacterBase> lowestHealthTargets = detectedTargets.Where(t => t.Health == lowestHealth).ToList();
-
-        // If there is more than one target with the same health, prefer melee characters
-        CharacterBase selectedTarget = lowestHealthTargets.FirstOrDefault(t => !t.IsRanged);
-        if (selectedTarget != null)
-        {
-            return selectedTarget;
-        }
-
-        // If no melee targets with the lowest health exist, select the first available (lowest health)
-        return lowestHealthTargets.First();
+        return meleeTargets.OrderBy(t => Vector2Int.Distance(CurrentGridPosition, gridManager.GetGridPosition(t.transform.position))).First();
     }
 
     // Custom logic for determining movement targets based on specific conditions
@@ -68,6 +56,7 @@ public class Ghost : EnemyBase
             if (gridManager.IsWithinGridBounds(newPosition))
             {
                 potentialPositions.Add(newPosition);
+                Debug.Log($"Calculated ghost potential position set to: {newPosition}");
             }
         }
 

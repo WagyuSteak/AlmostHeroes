@@ -4,6 +4,7 @@ using UnityEditor.Searcher;
 using UnityEngine;
 using UnityEngine.TextCore.Text;
 using static Pathfinding.OffMeshLinks;
+using static UnityEngine.GraphicsBuffer;
 
 public class TurnManager : MonoBehaviour
 {
@@ -330,7 +331,11 @@ public class TurnManager : MonoBehaviour
         yield return HandleEnemies(slimes);
         yield return HandleEnemies(ghosts);
 
-        // Proceed to Sylph's turn after all enemy movements are complete
+        if (uiManager != null)
+        {
+            uiManager.DecreaseTurn();
+        }
+
         StartSylphTurn();
     }
 
@@ -345,18 +350,6 @@ public class TurnManager : MonoBehaviour
             // Add any other behavior here, like attacking if in range
             enemy.AttackIfInRange();
         }
-
-        // Proceed to Sylph's turn after all enemy movements are complete
-        StartSylphTurn();
-
-        if (uiManager != null)
-        {
-            uiManager.DecreaseTurn();
-        }
-
-        // Proceed to Sylph's turn after all enemy movements are complete
-        StartSylphTurn();
-
     }
 
 // 'e' 키를 눌렀을 때 캐릭터의 최근 활성화된 셀을 취소하는 메서드
