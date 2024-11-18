@@ -10,15 +10,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: e08a68b82a6cf9844b61b04003aa1f57, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.3
+      value: 0.25
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e08a68b82a6cf9844b61b04003aa1f57, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.3
+      value: 0.25
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e08a68b82a6cf9844b61b04003aa1f57, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.3
+      value: 0.25
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e08a68b82a6cf9844b61b04003aa1f57, type: 3}
       propertyPath: m_LocalPosition.x
@@ -129,6 +129,7 @@ MonoBehaviour:
   rotationSpeed: 15
   CurrentGridPosition: {x: 0, y: 0}
   Target: {fileID: 0}
+  animator: {fileID: 0}
   Health: 0
   MaxHealth: 0
 --- !u!95 &-2329996521060296739

@@ -343,17 +343,18 @@ public class TurnManager : MonoBehaviour
     {
         foreach (T enemy in enemies)
         {
-            Vector2Int targetPosition = enemy.GetCalculatedIntermediatePosition(); // Add this method if not present
+            Vector2Int targetPosition = enemy.GetCalculatedIntermediatePosition(); // Calculate intermediate position
 
             // Move to the calculated intermediate position
             yield return StartCoroutine(enemy.MoveToCalculatedPosition(targetPosition));
-            // Add any other behavior here, like attacking if in range
-            enemy.AttackIfInRange();
+
+            // Handle attack if in range
+            yield return StartCoroutine(enemy.HandleAttackIfInRange());
         }
     }
 
-// 'e' 키를 눌렀을 때 캐릭터의 최근 활성화된 셀을 취소하는 메서드
-public void UndoLastCharacterAction()
+    // 'e' 키를 눌렀을 때 캐릭터의 최근 활성화된 셀을 취소하는 메서드
+    public void UndoLastCharacterAction()
     {
         if (currentCharacterIndex > 0 && currentCharacterIndex <= activatedCellCounts.Count)
         {

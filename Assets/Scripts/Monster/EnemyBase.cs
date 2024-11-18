@@ -36,7 +36,7 @@ public abstract class EnemyBase : MonoBehaviour
     private List<Vector2Int> previousHighlightedCells = new List<Vector2Int>(); // Track previously highlighted cells
     private Vector2Int calculatedIntermediatePosition; // New variable for storing intermediate position
 
-    Animator animator;
+    public Animator animator;
 
     protected virtual void Start()
     {
@@ -436,6 +436,27 @@ public abstract class EnemyBase : MonoBehaviour
         }
     }
 
+    private void HighlightAlternativePath(List<Vector2Int> path, Vector2Int intermediatePoint)
+    {
+        foreach (Vector2Int position in path)
+        {
+            if (gridManager.gridCells.ContainsKey(position))
+            {
+                Renderer cellRenderer = gridManager.gridCells[position].GetComponent<Renderer>();
+                if (cellRenderer != null)
+                {
+                    cellRenderer.material.color = Color.red; // Set a different color for alternative path
+                    previousHighlightedCells.Add(position);
+                }
+            }
+
+            if (position == intermediatePoint)
+            {
+                break; // Stop highlighting after the intermediate point
+            }
+        }
+    }
+
     public Vector2Int CalculateIntermediatePosition(List<EnemyBase> enemies)
     {
         if (IsCharacterInAttackRange())
@@ -444,7 +465,7 @@ public abstract class EnemyBase : MonoBehaviour
             return CurrentGridPosition; // Return current position as the intermediate position
         }
 
-        // Continue with normal path calculation if no characters are in range
+        // Initial path calculation
         Vector2Int targetGridPosition = GetAdjacentPositionNearTarget(gridManager.GetGridPosition(Target.transform.position));
         List<Vector2Int> path = CalculatePathToTarget(CurrentGridPosition, targetGridPosition);
 
@@ -454,7 +475,36 @@ public abstract class EnemyBase : MonoBehaviour
             path.RemoveAt(0); // Remove the first element if it's the current position
         }
 
+        // Calculate the initial intermediate point
         Vector2Int intermediatePoint = GetIntermediatePoint(path);
+
+        // Check if intermediatePoint is occupied by another enemy
+        bool pointOccupied = enemies.Any(e => e != this && e.GetCalculatedIntermediatePosition() == intermediatePoint);
+
+        if (pointOccupied)
+        {
+            // Recalculate path to avoid occupied points
+            List<Vector2Int> alternativePath = FindAlternativePath(targetGridPosition, enemies);
+
+            // Ensure to skip own current position
+            if (alternativePath.Count > 0 && alternativePath[0] == CurrentGridPosition)
+            {
+                alternativePath.RemoveAt(0); // Remove the first element if it's the current position
+            }
+
+            // If a valid alternative path is found, use it
+            if (alternativePath.Count > 0)
+            {
+                intermediatePoint = GetIntermediatePoint(alternativePath);
+                HighlightAlternativePath(alternativePath, intermediatePoint); // Custom highlight for alternative path
+                return intermediatePoint;
+            }
+            else
+            {
+                // If no alternative path is found, remain in the current position
+                intermediatePoint = CurrentGridPosition;
+            }
+        }
 
         // Highlight the path to the final intermediate point
         HighlightPath(path, intermediatePoint);
@@ -464,6 +514,63 @@ public abstract class EnemyBase : MonoBehaviour
         // Return the calculated intermediate position
         return intermediatePoint;
     }
+
+
+    private List<Vector2Int> FindAlternativePath(Vector2Int targetGridPosition, List<EnemyBase> enemies)
+{
+    // Use a modified pathfinding logic to exclude positions occupied by other enemies
+    Queue<Vector2Int> queue = new Queue<Vector2Int>();
+    Dictionary<Vector2Int, Vector2Int?> cameFrom = new Dictionary<Vector2Int, Vector2Int?>();
+    queue.Enqueue(CurrentGridPosition);
+    cameFrom[CurrentGridPosition] = null;
+
+    Vector2Int[] directions = {
+        new Vector2Int(0, 1),   // Up
+        new Vector2Int(0, -1),  // Down
+        new Vector2Int(1, 0),   // Right
+        new Vector2Int(-1, 0)   // Left
+    };
+
+    while (queue.Count > 0)
+    {
+        Vector2Int current = queue.Dequeue();
+
+        // If we reach the target position, reconstruct the path
+        if (current == targetGridPosition)
+        {
+            List<Vector2Int> path = new List<Vector2Int>();
+            Vector2Int? step = current;
+            while (step.HasValue)
+            {
+                path.Add(step.Value);
+                step = cameFrom[step.Value];
+            }
+            path.Reverse(); // Reverse to get the path from start to target
+            return path;
+        }
+
+        foreach (Vector2Int direction in directions)
+        {
+            Vector2Int next = current + direction;
+
+            // Check if the next position is valid (not blocked, within grid bounds, and not occupied by another enemy)
+            if (gridManager.IsWithinGridBounds(next) &&
+                !cameFrom.ContainsKey(next) && // Check that we haven't already processed this position
+                !gridManager.IsCharacterPosition(next) &&
+                !gridManager.IsEnemyPosition(next) &&
+                !gridManager.IsObstaclePosition(next) &&
+                !gridManager.IsSylphPosition(next) &&
+                !enemies.Any(e => e != this && e.GetCalculatedIntermediatePosition() == next)) // Avoid occupied positions
+            {
+                queue.Enqueue(next);
+                cameFrom[next] = current;
+            }
+        }
+    }
+
+    // Return an empty path if no valid path is found
+    return new List<Vector2Int>();
+}
 
     public Vector2Int GetCalculatedIntermediatePosition()
     {
@@ -505,7 +612,6 @@ public abstract class EnemyBase : MonoBehaviour
             if (gridManager.IsCharacterPosition(nextGrid) || gridManager.IsEnemyPosition(nextGrid) || gridManager.IsSylphPosition(nextGrid) || gridManager.IsObstaclePosition(nextGrid))
             {
                 Debug.Log($"Movement stopped due to an obstacle at {nextGrid}");
-                MoveCount = 0; // Stop further movement
                 if (animator != null)
                 {
                     animator.SetBool("isMoving", false); // Reset animation to idle
@@ -623,39 +729,69 @@ public abstract class EnemyBase : MonoBehaviour
         return false; // No characters in attack range
     }
 
-
-    public void AttackIfInRange()
+    public IEnumerator HandleAttackIfInRange()
     {
-        if (Target == null) return;
+        // Detect all characters within attack range
+        List<CharacterBase> charactersInRange = GetCharactersInAttackRange();
 
-        Vector2Int targetPosition = gridManager.GetGridPosition(Target.transform.position);
-        float distanceToTarget = Vector2Int.Distance(CurrentGridPosition, targetPosition);
-
-        if (distanceToTarget <= AttackRange)
+        foreach (CharacterBase character in charactersInRange)
         {
-            // Calculate direction to face the target
-            Vector3 directionToTarget = gridManager.GetWorldPositionFromGrid(targetPosition) - transform.position;
-            directionToTarget.y = 0; // Keep rotation on the horizontal plane
-            Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
-
-            // Instantly face the target
-            transform.rotation = targetRotation;
-
-            // Play attack animation
+            // Trigger attack animation and wait for completion
             if (animator != null)
             {
                 animator.SetBool("isAttacking", true);
             }
 
-            // Apply damage to the target
-            Target.TakeDamage(AttackDamage);
+            // Rotate to face the target before attacking
+            Vector2Int targetPosition = gridManager.GetGridPosition(character.transform.position);
+            Vector3 directionToTarget = gridManager.GetWorldPositionFromGrid(targetPosition) - transform.position;
+            directionToTarget.y = 0;
+            Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
+            transform.rotation = targetRotation;
 
-            // Optionally reset attack animation (if needed)
+            // Apply damage
+            character.TakeDamage(AttackDamage);
+
+            // Wait for the attack animation to finish
+            yield return new WaitForSeconds(0.6f); // Adjust based on the length of the attack animation
+
+
+            // Reset attack animation
             if (animator != null)
             {
-                StartCoroutine(ResetAttackAnimation());
+                animator.SetBool("isAttacking", false);
+                Debug.Log("Animation Reset Compelete");
+            }
+
+            // Optional: Delay between attacks on multiple targets
+            yield return new WaitForSeconds(0.4f); // Adjust for desired pacing between attacks
+        }
+    }
+
+    public List<CharacterBase> GetCharactersInAttackRange()
+    {
+        List<CharacterBase> charactersInRange = new List<CharacterBase>();
+        Vector2Int[] directions = {
+        new Vector2Int(0, 1),   // Up
+        new Vector2Int(0, -1),  // Down
+        new Vector2Int(1, 0),   // Right
+        new Vector2Int(-1, 0)   // Left
+    };
+
+        foreach (Vector2Int direction in directions)
+        {
+            Vector2Int adjacentGridPosition = CurrentGridPosition + direction;
+            if (gridManager.IsWithinGridBounds(adjacentGridPosition))
+            {
+                CharacterBase character = gridManager.GetCharacterAtPosition(adjacentGridPosition);
+                if (character != null && Vector2Int.Distance(CurrentGridPosition, adjacentGridPosition) <= AttackRange)
+                {
+                    charactersInRange.Add(character);
+                }
             }
         }
+
+        return charactersInRange;
     }
 
     private IEnumerator ResetAttackAnimation()

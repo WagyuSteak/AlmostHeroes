@@ -21,12 +21,4 @@ public class Slime : EnemyBase
 
         FindObjectOfType<TurnManager>().RegisterEnemy(this);
     }
-
-    // 적이 죽을 때 처리할 로직
-    protected override void Die()
-    {
-        // 죽음 처리 로직 (예: 파괴, 효과 등)
-        Destroy(gameObject);
-        Debug.Log($"{gameObject.name} has been destroyed!");
-    }
 }

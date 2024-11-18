@@ -15,7 +15,7 @@ public class Ghost : EnemyBase
         HP = 3;
         MaxMoveCount = 1;
         AttackDamage = 0;
-        DetectRange = 7; // 7x7 area
+        DetectRange = 3; // 7x7 area
         AttackRange = 3; // Attack range of 3 tiles away (no diagonal)
         moveSpeed = 2f;
 
@@ -40,39 +40,40 @@ public class Ghost : EnemyBase
     // Custom logic for determining movement targets based on specific conditions
     protected override Vector2Int GetAdjacentPositionNearTarget(Vector2Int targetGridPosition)
     {
-        // Define the four cardinal directions for movement
+        // Possible moves for adjacency (up, down, left, right)
         Vector2Int[] directions = {
-            new Vector2Int(3, 0),  // 3 tiles right
-            new Vector2Int(-3, 0), // 3 tiles left
-            new Vector2Int(0, 3),  // 3 tiles up
-            new Vector2Int(0, -3)  // 3 tiles down
-        };
+        new Vector2Int(0, 3),  // Up
+        new Vector2Int(0, -3), // Down
+        new Vector2Int(3, 0),  // Right
+        new Vector2Int(-3, 0)  // Left
+    };
 
-        // Calculate potential positions
-        List<Vector2Int> potentialPositions = new List<Vector2Int>();
+        // Step 1: Collect all valid adjacent positions
+        List<Vector2Int> adjacentPositions = new List<Vector2Int>();
         foreach (Vector2Int direction in directions)
         {
-            Vector2Int newPosition = targetGridPosition + direction;
-            if (gridManager.IsWithinGridBounds(newPosition))
+            Vector2Int adjacentPosition = targetGridPosition + direction;
+            // Check if the position is valid (within bounds and unoccupied)
+            if (gridManager.IsWithinGridBounds(adjacentPosition) &&
+                !gridManager.IsCharacterPosition(adjacentPosition) &&
+                !gridManager.IsEnemyPosition(adjacentPosition) &&
+                !gridManager.IsSylphPosition(adjacentPosition) &&
+                !gridManager.IsObstaclePosition(adjacentPosition))
             {
-                potentialPositions.Add(newPosition);
-                Debug.Log($"Calculated ghost potential position set to: {newPosition}");
+                adjacentPositions.Add(adjacentPosition);
             }
         }
 
-        // Sort positions by x value in descending order (larger x comes first)
-        potentialPositions = potentialPositions.OrderByDescending(pos => pos.x).ToList();
+        // Step 2: Sort by distance to ensure preference for closer cells
+        adjacentPositions = adjacentPositions.OrderBy(pos => Vector2Int.Distance(CurrentGridPosition, pos)).ToList();
 
-        // Check each position for the presence of other objects and return the first valid one
-        foreach (Vector2Int position in potentialPositions)
+        // Step 3: Return the first valid unoccupied position
+        if (adjacentPositions.Count > 0)
         {
-            if (!gridManager.IsCharacterPosition(position) && !gridManager.IsEnemyPosition(position))
-            {
-                return position; // Return the first valid position
-            }
+            return adjacentPositions[0];
         }
 
-        // Fallback: return the closest available valid position
-        return potentialPositions.OrderBy(pos => Vector2Int.Distance(CurrentGridPosition, pos)).FirstOrDefault();
+        // No valid positions available, select a new target if needed or remain in place
+        return CurrentGridPosition; // Stay in current position if no valid moves are found
     }
 }

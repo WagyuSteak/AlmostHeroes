@@ -112,6 +112,7 @@ MonoBehaviour:
   rotationSpeed: 10
   CurrentGridPosition: {x: 0, y: 0}
   Target: {fileID: 0}
+  animator: {fileID: 0}
 --- !u!65 &3223784459299642741
 BoxCollider:
   m_ObjectHideFlags: 0
