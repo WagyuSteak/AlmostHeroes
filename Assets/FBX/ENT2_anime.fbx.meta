@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< Updated upstream:Assets/FBX/ENT2_anime.fbx.meta
 guid: 98e0ac2a1b03ba549acaf3898770fd05
+=======
+guid: ea37c7d1db0882444af77d68c8cc821f
+>>>>>>> Stashed changes:Assets/FBX/Ent/ENT2_anime.fbx.meta
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -8,12 +12,20 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Material.018
+<<<<<<< Updated upstream:Assets/FBX/ENT2_anime.fbx.meta
     second: {fileID: 2100000, guid: 78bc3b2f172c65d4e91104983b33b29a, type: 2}
+=======
+    second: {fileID: 2100000, guid: 198393df26c2e4a45823e1b07e763506, type: 2}
+>>>>>>> Stashed changes:Assets/FBX/Ent/ENT2_anime.fbx.meta
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Material.021
+<<<<<<< Updated upstream:Assets/FBX/ENT2_anime.fbx.meta
     second: {fileID: 2100000, guid: 85694794790463541a2a71de13270666, type: 2}
+=======
+    second: {fileID: 2100000, guid: 83b6f4c22fa4fbe47a3e64ab2d4a9fe8, type: 2}
+>>>>>>> Stashed changes:Assets/FBX/Ent/ENT2_anime.fbx.meta
   materials:
     materialImportMode: 2
     materialName: 0
@@ -41,6 +53,7 @@ ModelImporter:
     animationWrapMode: 0
     extraExposedTransformPaths: []
     extraUserProperties: []
+<<<<<<< Updated upstream:Assets/FBX/ENT2_anime.fbx.meta
     clipAnimations:
     - serializedVersion: 16
       name: ent.002|ent.attack
@@ -187,6 +200,9 @@ ModelImporter:
       maskType: 3
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
+=======
+    clipAnimations: []
+>>>>>>> Stashed changes:Assets/FBX/Ent/ENT2_anime.fbx.meta
     isReadable: 0
   meshes:
     lODScreenPercentages: []
@@ -248,11 +264,19 @@ ModelImporter:
     globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
+<<<<<<< Updated upstream:Assets/FBX/ENT2_anime.fbx.meta
     hasExtraRoot: 1
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 1
+=======
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+>>>>>>> Stashed changes:Assets/FBX/Ent/ENT2_anime.fbx.meta
   humanoidOversampling: 1
   avatarSetup: 0
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1

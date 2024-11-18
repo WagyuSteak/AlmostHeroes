@@ -37,6 +37,7 @@ public class TurnManager : MonoBehaviour
     private List<Slime> slimes = new List<Slime>();
     private List<Ghost> ghosts = new List<Ghost>();
 
+    public EnemyBase enemy;
     public CharacterBase character;
 
     void Awake()
@@ -132,6 +133,8 @@ public class TurnManager : MonoBehaviour
             enemy.SelectTarget(); // Select the target for each enemy
             Vector2Int intermediatePosition = enemy.CalculateIntermediatePosition(enemies); // Calculate intermediate position
             enemy.SetCalculatedIntermediatePosition(intermediatePosition); // Optionally store this position in the enemy
+
+            Debug.Log("IntermediatePoint Calculated");
         }
     }
 
@@ -318,6 +321,7 @@ public class TurnManager : MonoBehaviour
     }
     public void EnemyTurn()
     {
+        ClearAllEnemyHighlightedCells();
         Debug.Log("적 턴이 시작됩니다.");
         StartCoroutine(HandleEnemyMovement());
     }
@@ -353,8 +357,44 @@ public class TurnManager : MonoBehaviour
         }
     }
 
+<<<<<<< Updated upstream:Assets/Scripts/TurnManager.cs
     // 'e' 키를 눌렀을 때 캐릭터의 최근 활성화된 셀을 취소하는 메서드
     public void UndoLastCharacterAction()
+=======
+    private void ClearAllEnemyHighlightedCells()
+    {
+        // Combine all enemy lists into a single collection
+        List<EnemyBase> allEnemies = new List<EnemyBase>();
+        allEnemies.AddRange(specialEnts);
+        allEnemies.AddRange(ents);
+        allEnemies.AddRange(fireSlimes);
+        allEnemies.AddRange(slimes);
+        allEnemies.AddRange(ghosts);
+
+        // Iterate over each enemy and clear their highlighted cells
+        foreach (EnemyBase enemy in allEnemies)
+        {
+            if (enemy != null && enemy.previousHighlightedCells != null)
+            {
+                foreach (Vector2Int position in enemy.previousHighlightedCells)
+                {
+                    if (gridManager.gridCells.ContainsKey(position))
+                    {
+                        Renderer cellRenderer = gridManager.gridCells[position].GetComponent<Renderer>();
+                        if (cellRenderer != null)
+                        {
+                            cellRenderer.material.color = Color.white; // Reset to default color
+                        }
+                    }
+                }
+                // Clear the list after resetting colors
+                enemy.previousHighlightedCells.Clear();
+            }
+        }
+    }
+
+    public void DeregisterEnemy(EnemyBase enemy)
+>>>>>>> Stashed changes:Assets/Scripts/UIScripts/TurnManager.cs
     {
         if (currentCharacterIndex > 0 && currentCharacterIndex <= activatedCellCounts.Count)
         {
