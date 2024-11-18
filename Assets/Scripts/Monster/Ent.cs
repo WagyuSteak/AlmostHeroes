@@ -12,7 +12,7 @@ public class Ent : EnemyBase
         // Call the base class Start() to ensure common initialization logic is run
         base.Start();
 
-        HP = 3; // Set health points
+        HP = 4; // Set health points
         MaxMoveCount = 2; // Set number of tiles the enemy can move
         AttackDamage = 0; // You can adjust attack damage here if needed
         moveSpeed = 3f;
