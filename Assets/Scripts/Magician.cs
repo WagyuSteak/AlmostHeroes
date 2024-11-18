@@ -20,20 +20,18 @@ public class Magician : CharacterBase
         if (skillNumber == 2)
         {
             Magiciananimator.SetTrigger("firebomb"); // Firebomb 애니메이션 재생
-            int damage = Damage + 1;
-            ApplyDamageToTargets(damage, turnManager);
-            FireProjectile(GetGridPosition(transform.position), GetForwardDirection(), 4, skill2ProjectilePrefab);
+            int damage = Damage + 1; // 스킬 2 데미지
+            FireProjectile(GetGridPosition(transform.position), GetForwardDirection(), 4, skill2ProjectilePrefab, turnManager, damage);
         }
         else if (skillNumber == 1)
         {
             Magiciananimator.SetTrigger("fireball"); // Fireball 애니메이션 재생
-            int damage = Damage;
-            ApplyDamageToTargets(damage, turnManager);
-            FireProjectile(GetGridPosition(transform.position), GetForwardDirection(), 4, skill1ProjectilePrefab);
+            int damage = Damage; // 스킬 1 데미지
+            FireProjectile(GetGridPosition(transform.position), GetForwardDirection(), 4, skill1ProjectilePrefab, turnManager, damage);
         }
     }
 
-    private void FireProjectile(Vector2Int pathOrigin, Vector2Int pathDirection, int attackRange, GameObject projectilePrefab)
+    private void FireProjectile(Vector2Int pathOrigin, Vector2Int pathDirection, int attackRange, GameObject projectilePrefab, TurnManager turnManager, int damage)
     {
         if (projectilePrefab == null)
         {
@@ -41,7 +39,7 @@ public class Magician : CharacterBase
             return;
         }
 
-        // 투사체 생성 위치 설정: Y 좌표와 방향 보정 추가
+        // 투사체 생성 위치 설정
         Vector3 spawnPosition = gridOrigin + new Vector3(pathOrigin.x * cellWidth, pathIndicatorHeight, pathOrigin.y * cellHeight);
         Vector3 directionOffset = new Vector3(pathDirection.x * 0.5f, 0, pathDirection.y * 0.5f); // 방향으로 약간 앞 이동
         spawnPosition += directionOffset; // 보정된 위치
@@ -55,7 +53,7 @@ public class Magician : CharacterBase
         Vector3 targetWorldPosition = gridOrigin + new Vector3(targetGridPosition.x * cellWidth, pathIndicatorHeight, targetGridPosition.y * cellHeight);
 
         // 투사체 이동 시작
-        StartCoroutine(MoveProjectile(projectile, targetWorldPosition));
+        StartCoroutine(MoveProjectile(projectile, targetWorldPosition, turnManager, damage));
     }
 
     private Vector2Int CalculateProjectileTarget(Vector2Int pathOrigin, Vector2Int pathDirection, int attackRange)
@@ -89,7 +87,7 @@ public class Magician : CharacterBase
         return targetPosition.Value;
     }
 
-    private IEnumerator MoveProjectile(GameObject projectile, Vector3 targetPosition)
+    private IEnumerator MoveProjectile(GameObject projectile, Vector3 targetPosition, TurnManager turnManager, int damage)
     {
         float speed = 5f; // 투사체 속도
 
@@ -108,6 +106,10 @@ public class Magician : CharacterBase
             yield return null;
         }
 
+        // 투사체가 목표 위치에 도달한 후 데미지 적용
+        ApplyDamageToTargets(damage, turnManager);
+
+        // 투사체 파괴
         Destroy(projectile);
         Debug.Log($"Projectile reached target at {targetPosition} and was destroyed");
     }

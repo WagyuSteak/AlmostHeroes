@@ -134,6 +134,8 @@ MonoBehaviour:
   Shield: 0
   Damage: 0
   attackRange: 4
+  Receivemana: 0
+  ReceivemoveCount: 0
   cellWidth: 0
   cellHeight: 0
   gridOrigin: {x: 0, y: 0, z: 0}
@@ -158,6 +160,7 @@ MonoBehaviour:
   currentGridPosition: {x: 0, y: 0}
   startGridPosition: {x: 0, y: 0}
   isMyTurn: 0
+  ProjectilePrefab: {fileID: 7877181799667751549, guid: 5d04a94f78989cc4284e520d1f344a51, type: 3}
 --- !u!65 &3673771227663987568
 BoxCollider:
   m_ObjectHideFlags: 0

@@ -328,9 +328,21 @@ public class TurnManager : MonoBehaviour
 
     public void ResetTurn()
     {
+        StartCoroutine(ResetTurnWithDelay());
+    }
+
+    private IEnumerator ResetTurnWithDelay()
+    {
+        // 턴 리셋 작업 수행
         characterTargetMap.Clear();
         gridManager.ClearActivatedCells();
+
+        yield return new WaitForSeconds(2f);
+
         turnIndicatorManager.ShowTurnIndicator(TurnIndicatorManager.TurnType.EnemyTurn);
+
+        yield return new WaitForSeconds(1f);
+        // 적 턴 시작
         EnemyTurn();
     }
     public void EnemyTurn()

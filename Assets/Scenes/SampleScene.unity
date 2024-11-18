@@ -385,9 +385,33 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3341528035754640837, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
+      propertyPath: m_InitialState
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3341528035754640837, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
+      propertyPath: m_DirectorUpdateMode
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3376253060253397786, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
       propertyPath: m_Name
       value: vfx
+      objectReference: {fileID: 0}
+    - target: {fileID: 3420591941735619554, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
+      propertyPath: m_InitialState
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3420591941735619554, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
+      propertyPath: m_DirectorUpdateMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4844195397702999439, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
+      propertyPath: m_InitialState
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4844195397702999439, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
+      propertyPath: m_DirectorUpdateMode
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4846883200537959247, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -428,6 +452,14 @@ PrefabInstance:
     - target: {fileID: 4846883200537959247, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8059904740376180674, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
+      propertyPath: m_InitialState
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8059904740376180674, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
+      propertyPath: m_DirectorUpdateMode
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

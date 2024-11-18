@@ -7,6 +7,7 @@ public class Priest : CharacterBase
 {
     private Animator Priestanimator;
     private List<object> collisionTargets = new List<object>(); // 캐릭터와 적을 모두 저장
+    public GameObject ProjectilePrefab;
 
     protected override void Start()
     {
@@ -27,6 +28,7 @@ public class Priest : CharacterBase
         {
             Priestanimator.SetTrigger("skill1");
             int damage = Damage - 1; // 데미지를 기본 공격력보다 1 낮게 설정
+            FireProjectile(GetGridPosition(transform.position), GetForwardDirection(), 4, ProjectilePrefab, turnManager, damage);
 
             // 넉백 후 이동 애니메이션 적용
             if (turnManager.characterTargetMap.TryGetValue(this, out var targets))
@@ -62,6 +64,99 @@ public class Priest : CharacterBase
             }
         }
     }
+
+    private void FireProjectile(Vector2Int pathOrigin, Vector2Int pathDirection, int attackRange, GameObject projectilePrefab, TurnManager turnManager, int damage)
+    {
+        if (projectilePrefab == null)
+        {
+            Debug.LogError("Projectile prefab is null!");
+            return;
+        }
+
+        // 투사체 생성 위치 설정
+        Vector3 spawnPosition = gridOrigin + new Vector3(pathOrigin.x * cellWidth, pathIndicatorHeight, pathOrigin.y * cellHeight);
+        Vector3 directionOffset = new Vector3(pathDirection.x * 0.5f, 0, pathDirection.y * 0.5f); // 방향으로 약간 앞 이동
+        spawnPosition += directionOffset; // 보정된 위치
+        spawnPosition.y = 1.5f; // Y 좌표 고정값
+
+        GameObject projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
+        Debug.Log($"Projectile created at {spawnPosition} with offset {directionOffset}");
+
+        // 최종 위치 계산
+        Vector2Int targetGridPosition = CalculateProjectileTarget(pathOrigin, pathDirection, attackRange);
+        Vector3 targetWorldPosition = gridOrigin + new Vector3(targetGridPosition.x * cellWidth, pathIndicatorHeight, targetGridPosition.y * cellHeight);
+
+        // 투사체 이동 시작
+        StartCoroutine(MoveProjectile(projectile, targetWorldPosition, turnManager, damage));
+    }
+
+    private Vector2Int CalculateProjectileTarget(Vector2Int pathOrigin, Vector2Int pathDirection, int attackRange)
+    {
+        Vector2Int? targetPosition = null;
+
+        for (int i = 1; i <= attackRange; i++)
+        {
+            Vector2Int position = pathOrigin + pathDirection * i;
+
+            if (!gridManager.IsWithinGridBounds(position))
+            {
+                targetPosition = pathOrigin + pathDirection * (i - 1);
+                break;
+            }
+
+            if (gridManager.IsEnemyPosition(position) || gridManager.IsCharacterPosition(position) || gridManager.IsObstaclePosition(position))
+            {
+                targetPosition = position;
+                break;
+            }
+
+            targetPosition = position; // 계속 업데이트
+        }
+
+        if (!targetPosition.HasValue)
+        {
+            targetPosition = pathOrigin + pathDirection * attackRange;
+        }
+
+        return targetPosition.Value;
+    }
+
+    private IEnumerator MoveProjectile(GameObject projectile, Vector3 targetPosition, TurnManager turnManager, int damage)
+    {
+        float speed = 5f; // 투사체 속도
+
+        // Y 좌표 고정
+        float fixedY = projectile.transform.position.y;
+        targetPosition.y = fixedY; // 목표 위치의 Y 좌표 고정
+
+        while (Vector3.Distance(projectile.transform.position, targetPosition) > 0.1f)
+        {
+            // 현재 Y 좌표를 유지하면서 이동
+            Vector3 currentPosition = projectile.transform.position;
+            currentPosition = Vector3.MoveTowards(currentPosition, targetPosition, speed * Time.deltaTime);
+            currentPosition.y = fixedY; // Y 좌표 고정
+            projectile.transform.position = currentPosition;
+
+            yield return null;
+        }
+
+        // 투사체가 목표 위치에 도달한 후 데미지 적용
+        ApplyDamageToTargets(damage, turnManager);
+
+        // 투사체 파괴
+        Destroy(projectile);
+        Debug.Log($"Projectile reached target at {targetPosition} and was destroyed");
+    }
+
+    private Vector2Int GetForwardDirection()
+    {
+        // 캐릭터가 바라보는 전방 방향 계산
+        Vector3 forward = transform.forward;
+        int x = Mathf.RoundToInt(forward.x);
+        int z = Mathf.RoundToInt(forward.z);
+        return new Vector2Int(x, z);
+    }
+
     private void ApplyKnockback(object target)
     {
         Vector2Int direction, knockbackDirection, knockbackPosition;

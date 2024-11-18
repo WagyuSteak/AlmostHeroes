@@ -13,11 +13,13 @@ public class Warrior : CharacterBase
     {
         base.Start();
         IsRanged = false;
+        Warrioranimator = GetComponent<Animator>();
     }
     public override void UseSkill(int skillNumber, TurnManager turnManager)
     {
         if (skillNumber == 2)
         {
+            Warrioranimator.SetTrigger("skill2"); // Firebomb 애니메이션 재생
             int damage = Damage + 1;
             ApplyDamageToTargets(damage, turnManager);
 
@@ -50,14 +52,60 @@ public class Warrior : CharacterBase
                     StartCoroutine(DelayedKnockback(target, knockbackWorldPosition, 0.3f, 0.5f)); // 0.3초 후 넉백 시작
                 }
             }
+
+            // 타겟 없을 경우 최대 사거리로 시각적 이동
+            VisualMoveToMaxRangeIfNoTargets(turnManager);
         }
         else if (skillNumber == 1)
         {
+            Warrioranimator.SetTrigger("skill1"); // Firebomb 애니메이션 재생
             // 기본 방어 효과 적용
             Shield += 1;
             Debug.Log("워리어의 쉴드 +1");
         }
     }
+
+    private void VisualMoveToMaxRangeIfNoTargets(TurnManager turnManager)
+    {
+        // 타겟 확인
+        if (turnManager.characterTargetMap.TryGetValue(this, out var targets))
+        {
+            var (characterTargets, enemyTargets) = targets;
+
+            // 타겟이 없는 경우 최대 사거리로 이동
+            if (!characterTargets.Any() && !enemyTargets.Any())
+            {
+                Vector2Int pathDirection = activatedCells.Count > 1
+                    ? (activatedCells[activatedCells.Count - 1] - activatedCells[activatedCells.Count - 2])
+                    : Vector2Int.zero;
+
+                Vector2Int moveToPosition = currentGridPosition;
+
+                // 최대 사거리 위치 계산
+                for (int i = 1; i <= attackRange; i++)
+                {
+                    Vector2Int nextPosition = currentGridPosition + pathDirection * i;
+
+                    if (gridManager.IsWithinGridBounds(nextPosition) && !gridManager.IsObstaclePosition(nextPosition))
+                    {
+                        moveToPosition = nextPosition;
+                    }
+                    else
+                    {
+                        break; // 범위 밖이거나 장애물이 있는 경우 멈춤
+                    }
+                }
+
+                // 시각적 이동 처리
+                Vector3 worldPosition = gridManager.GetWorldPositionFromGrid(moveToPosition);
+                StartCoroutine(MoveWarriorToPosition(worldPosition, 0.3f)); // 0.3초 동안 이동 애니메이션
+
+                Debug.Log($"{this.name}이(가) 타겟이 없어 최대 사거리로 이동했습니다: ({moveToPosition.x}, {moveToPosition.y})");
+            }
+        }
+    }
+
+
     private IEnumerator MoveWarriorToPosition(Vector3 targetPosition, float duration)
     {
         float elapsedTime = 0;
@@ -519,5 +567,100 @@ public class Warrior : CharacterBase
                 ApplyKnockback(enemy);
             }
         }
+
+        // 타겟이 없을 경우 최대 사거리로 이동
+        if (!characterTargets.Any() && !enemyTargets.Any())
+        {
+            Vector2Int pathDirection = activatedCells.Count > 1
+                ? (activatedCells[activatedCells.Count - 1] - activatedCells[activatedCells.Count - 2])
+                : Vector2Int.zero;
+
+            Vector2Int moveToPosition = currentGridPosition;
+
+            for (int i = 1; i <= attackRange; i++)
+            {
+                Vector2Int nextPosition = currentGridPosition + pathDirection * i;
+
+                if (gridManager.IsWithinGridBounds(nextPosition) && !gridManager.IsObstaclePosition(nextPosition))
+                {
+                    moveToPosition = nextPosition;
+                }
+                else
+                {
+                    break; // 범위 밖이거나 장애물이 있는 경우 멈춤
+                }
+            }
+
+            // 워리어 이동 처리
+            gridManager.RemoveCharacterFromGrid(this);
+            this.SetGridPosition(moveToPosition);
+            gridManager.AddCharacterToGrid(moveToPosition, this);
+
+            Debug.Log($"{this.name}이(가) 타겟이 없어서 최대 사거리 위치로 이동했습니다: ({moveToPosition.x}, {moveToPosition.y})");
+        }
+    }
+    public override IEnumerator StartMovement()
+    {
+        // 첫 번째 활성화된 셀을 건너뛰기 위해 i를 1로 설정
+        for (int i = 1; i < activatedCells.Count; i++)
+        {
+            Vector2Int cellPosition = activatedCells[i];
+            Vector3 targetPosition = gridOrigin + new Vector3(cellPosition.x * cellWidth, 0.55f, cellPosition.y * cellHeight);
+            Vector3 direction = (targetPosition - transform.position).normalized;
+            Quaternion targetRotation = Quaternion.Euler(0, Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z)).eulerAngles.y, 0);
+
+            // 이동 애니메이션 시작
+            Warrioranimator.SetBool("isMoving", true);
+            yield return new WaitForSeconds(0.85f); // 애니메이션이 시작되도록 잠깐 대기
+
+            // 회전
+            while (Quaternion.Angle(transform.rotation, targetRotation) > 0.1f)
+            {
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 30);
+                yield return null;
+            }
+
+            // 이동
+            while (Vector3.Distance(transform.position, targetPosition) > 0.1f)
+            {
+                transform.position = Vector3.MoveTowards(transform.position, targetPosition, Time.deltaTime * 7);
+                yield return null;
+            }
+
+            yield return new WaitForSeconds(0.25f); // 각 위치에서 대기 시간
+        }
+        Warrioranimator.SetBool("isMoving", false); // 이동 애니메이션 종료
+        ClearIndicators(); // 이동이 끝난 후 인디케이터 초기화
+        ResetCharacterSet();
+    }
+
+    public override void TakeDamage(int damageAmount)
+    {
+        int damageToApply = damageAmount;
+
+        if (Shield > 0)
+        {
+            int shieldAbsorbed = Mathf.Min(Shield, damageToApply);
+            Shield -= shieldAbsorbed;
+            damageToApply -= shieldAbsorbed;
+            Debug.Log($"{name}의 쉴드가 {shieldAbsorbed}만큼 피해를 흡수했습니다. 남은 쉴드: {Shield}");
+        }
+
+        if (damageToApply > 0)
+        {
+            Warrioranimator.SetTrigger("hit"); // 피격 애니메이션 재생
+            Health -= damageToApply;
+            Debug.Log($"{name}이(가) {damageToApply}의 피해를 입었습니다. 남은 체력: {Health}");
+        }
+
+        if (Health <= 0)
+        {
+            Die();
+        }
+    }
+    public override void Die()
+    {
+        Warrioranimator.SetTrigger("die"); // 피격 애니메이션 재생
+        base.Die(); // 기본 사망 로직 실행
     }
 }
