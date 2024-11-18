@@ -14,7 +14,7 @@ public class Slime : EnemyBase
 
         HP = 3; // Set health points
         MaxMoveCount = 2; // Set number of tiles the enemy can move
-        AttackDamage = 0; // You can adjust attack damage here if needed
+        AttackDamage = 1; // You can adjust attack damage here if needed
         moveSpeed = 3f;
         DetectRange = 2;
         AttackRange = 1;

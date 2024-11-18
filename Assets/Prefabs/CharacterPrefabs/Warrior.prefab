@@ -129,7 +129,9 @@ MonoBehaviour:
   MoveCount: 10
   Shield: 0
   Damage: 0
-  attackRange: 8
+  attackRange: 4
+  Receivemana: 0
+  ReceivemoveCount: 0
   cellWidth: 0
   cellHeight: 0
   gridOrigin: {x: 0, y: 0, z: 0}

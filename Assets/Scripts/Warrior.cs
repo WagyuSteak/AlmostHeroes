@@ -21,7 +21,6 @@ public class Warrior : CharacterBase
         {
             Warrioranimator.SetTrigger("skill2"); // Firebomb 애니메이션 재생
             int damage = Damage + 1;
-            ApplyDamageToTargets(damage, turnManager);
 
             // 넉백 전에 시각적으로 워리어 이동
             if (turnManager.characterTargetMap.TryGetValue(this, out var targets))
@@ -37,7 +36,7 @@ public class Warrior : CharacterBase
 
                     // 캐릭터 넉백 처리
                     Vector3 knockbackWorldPosition = gridManager.GetWorldPositionFromGrid(target.GetCurrentGridPosition());
-                    StartCoroutine(DelayedKnockback(target, knockbackWorldPosition, 0.3f, 0.5f)); // 0.3초 후 넉백 시작
+                    StartCoroutine(DelayedKnockback(target, knockbackWorldPosition, 0.3f, 0.5f, damage)); // 0.3초 후 넉백 시작
                 }
 
                 // 적 타겟 처리
@@ -49,7 +48,7 @@ public class Warrior : CharacterBase
 
                     // 적 넉백 처리
                     Vector3 knockbackWorldPosition = gridManager.GetWorldPositionFromGrid(target.CurrentGridPosition);
-                    StartCoroutine(DelayedKnockback(target, knockbackWorldPosition, 0.3f, 0.5f)); // 0.3초 후 넉백 시작
+                    StartCoroutine(DelayedKnockback(target, knockbackWorldPosition, 0.3f, 0.5f, damage)); // 0.3초 후 넉백 시작
                 }
             }
 
@@ -99,8 +98,6 @@ public class Warrior : CharacterBase
                 // 시각적 이동 처리
                 Vector3 worldPosition = gridManager.GetWorldPositionFromGrid(moveToPosition);
                 StartCoroutine(MoveWarriorToPosition(worldPosition, 0.3f)); // 0.3초 동안 이동 애니메이션
-
-                Debug.Log($"{this.name}이(가) 타겟이 없어 최대 사거리로 이동했습니다: ({moveToPosition.x}, {moveToPosition.y})");
             }
         }
     }
@@ -126,23 +123,22 @@ public class Warrior : CharacterBase
         transform.position = new Vector3(targetPosition.x, fixedY, targetPosition.z); // 최종 위치에도 Y 좌표 고정
     }
 
-    private IEnumerator DelayedKnockback(object target, Vector3 knockbackPosition, float delay, float duration)
+    private IEnumerator DelayedKnockback(object target, Vector3 knockbackPosition, float delay, float duration, int damage)
     {
         yield return new WaitForSeconds(delay); // 워리어 이동 시간 대기
 
         if (target is CharacterBase characterTarget)
         {
             // CharacterBase에 대한 넉백 처리
-            StartCoroutine(KnockbackCoroutine(characterTarget, knockbackPosition, duration));
+            yield return StartCoroutine(KnockbackCoroutine(characterTarget, knockbackPosition, duration, damage));
         }
         else if (target is EnemyBase enemyTarget)
         {
             // EnemyBase에 대한 넉백 처리
-            StartCoroutine(KnockbackCoroutine(enemyTarget, knockbackPosition, duration));
+            yield return StartCoroutine(KnockbackCoroutine(enemyTarget, knockbackPosition, duration, damage));
         }
         else
         {
-            Debug.LogError("Invalid target type for DelayedKnockback.");
         }
     }
 
@@ -152,7 +148,6 @@ public class Warrior : CharacterBase
 
         if (target is CharacterBase characterTarget)
         {
-            // 캐릭터 넉백 처리
             direction = characterTarget.GetCurrentGridPosition() - this.GetCurrentGridPosition();
             knockbackDirection = new Vector2Int(Mathf.Clamp(direction.x, -1, 1), Mathf.Clamp(direction.y, -1, 1));
             knockbackPosition = characterTarget.GetCurrentGridPosition() + knockbackDirection;
@@ -170,37 +165,36 @@ public class Warrior : CharacterBase
             }
             else
             {
-                // 넉백 대상 추가
-                collisionTargets.Add(target);
+                // 대상 자신을 collisionTargets에 추가
+                if (!collisionTargets.Contains(target)) // 중복 추가 방지
+                {
+                    collisionTargets.Add(target);
+                }
 
-                // 충돌 대상 처리
+                // 넉백 위치에 존재하는 대상을 collisionTargets에 추가
                 if (gridManager.IsCharacterPosition(knockbackPosition))
                 {
                     var collidedCharacter = gridManager.GetCharacterAtPosition(knockbackPosition);
-                    if (collidedCharacter != null)
+                    if (collidedCharacter != null && !collisionTargets.Contains(collidedCharacter))
                     {
                         collisionTargets.Add(collidedCharacter);
+                        Debug.Log($"{collidedCharacter.name}이(가) 넉백 위치에서 충돌로 인해 추가되었습니다.");
                     }
                 }
 
                 if (gridManager.IsEnemyPosition(knockbackPosition))
                 {
                     var collidedEnemy = gridManager.GetEnemyAtPosition(knockbackPosition);
-                    if (collidedEnemy != null)
+                    if (collidedEnemy != null && !collisionTargets.Contains(collidedEnemy))
                     {
                         collisionTargets.Add(collidedEnemy);
+                        Debug.Log($"{collidedEnemy.name}이(가) 넉백 위치에서 충돌로 인해 추가되었습니다.");
                     }
-                }
-
-                if (gridManager.IsObstaclePosition(knockbackPosition))
-                {
-                    Debug.Log($"장애물에 충돌: {target}");
                 }
             }
         }
         else if (target is EnemyBase enemyTarget)
         {
-            // 적 넉백 처리
             direction = enemyTarget.CurrentGridPosition - this.GetCurrentGridPosition();
             knockbackDirection = new Vector2Int(Mathf.Clamp(direction.x, -1, 1), Mathf.Clamp(direction.y, -1, 1));
             knockbackPosition = enemyTarget.CurrentGridPosition + knockbackDirection;
@@ -218,36 +212,36 @@ public class Warrior : CharacterBase
             }
             else
             {
-                // 넉백 대상 추가
-                collisionTargets.Add(target);
+                // 대상 자신을 collisionTargets에 추가
+                if (!collisionTargets.Contains(target)) // 중복 추가 방지
+                {
+                    collisionTargets.Add(target);
+                }
 
-                // 충돌 대상 처리
+                // 넉백 위치에 존재하는 대상을 collisionTargets에 추가
                 if (gridManager.IsCharacterPosition(knockbackPosition))
                 {
                     var collidedCharacter = gridManager.GetCharacterAtPosition(knockbackPosition);
-                    if (collidedCharacter != null)
+                    if (collidedCharacter != null && !collisionTargets.Contains(collidedCharacter))
                     {
                         collisionTargets.Add(collidedCharacter);
+                        Debug.Log($"{collidedCharacter.name}이(가) 넉백 위치에서 충돌로 인해 추가되었습니다.");
                     }
                 }
 
                 if (gridManager.IsEnemyPosition(knockbackPosition))
                 {
                     var collidedEnemy = gridManager.GetEnemyAtPosition(knockbackPosition);
-                    if (collidedEnemy != null)
+                    if (collidedEnemy != null && !collisionTargets.Contains(collidedEnemy))
                     {
                         collisionTargets.Add(collidedEnemy);
+                        Debug.Log($"{collidedEnemy.name}이(가) 넉백 위치에서 충돌로 인해 추가되었습니다.");
                     }
-                }
-
-                if (gridManager.IsObstaclePosition(knockbackPosition))
-                {
-                    Debug.Log($"장애물에 충돌: {target}");
                 }
             }
         }
     }
-    private IEnumerator KnockbackCoroutine(object target, Vector3 targetPosition, float duration)
+    private IEnumerator KnockbackCoroutine(object target, Vector3 targetPosition, float duration, int damage)
     {
         float elapsedTime = 0;
         Vector3 startingPosition;
@@ -263,7 +257,6 @@ public class Warrior : CharacterBase
         }
         else
         {
-            Debug.LogError("Invalid target for knockback.");
             yield break;
         }
 
@@ -310,10 +303,21 @@ public class Warrior : CharacterBase
             }
         }
 
+        // 데미지 적용 (넉백 이동 완료 후)
+        if (target is CharacterBase finalCharacterTarget)
+        {
+            finalCharacterTarget.TakeDamage(damage);
+            Debug.Log($"{finalCharacterTarget.name}이(가) {damage}의 피해를 받았습니다.");
+        }
+        else if (target is EnemyBase finalEnemyTarget)
+        {
+            finalEnemyTarget.TakeDamage(damage);
+            Debug.Log($"{finalEnemyTarget.name}이(가) {damage}의 피해를 받았습니다.");
+        }
+
         // 충돌 리스트 초기화
         collisionTargets.Clear();
     }
-
 
     protected override void ActivateCell(Vector2Int targetGridPosition)
     {
@@ -611,12 +615,11 @@ public class Warrior : CharacterBase
 
             // 이동 애니메이션 시작
             Warrioranimator.SetBool("isMoving", true);
-            yield return new WaitForSeconds(0.85f); // 애니메이션이 시작되도록 잠깐 대기
 
             // 회전
             while (Quaternion.Angle(transform.rotation, targetRotation) > 0.1f)
             {
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 30);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 50);
                 yield return null;
             }
 
@@ -627,7 +630,7 @@ public class Warrior : CharacterBase
                 yield return null;
             }
 
-            yield return new WaitForSeconds(0.25f); // 각 위치에서 대기 시간
+            yield return new WaitForSeconds(0.15f); // 각 위치에서 대기 시간
         }
         Warrioranimator.SetBool("isMoving", false); // 이동 애니메이션 종료
         ClearIndicators(); // 이동이 끝난 후 인디케이터 초기화

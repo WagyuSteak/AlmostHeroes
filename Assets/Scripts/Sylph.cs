@@ -32,7 +32,6 @@ public class Sylph : MonoBehaviour
     public LayerMask cellLayerMask;     // 셀을 감지하기 위한 레이어 마스크
 
     // 이벤트와 캐릭터 관리
-    public event Action OnSylphMoved; // 실프가 이동할 때 호출되는 이벤트
     private GameObject currentPointer; // 현재 마우스 위치를 나타내는 포인터
     public Vector2Int gridPosition;   // 실프의 현재 그리드 좌표
     public List<GameObject> pathIndicators = new List<GameObject>(); // 경로 표시 오브젝트 리스트
@@ -44,9 +43,10 @@ public class Sylph : MonoBehaviour
     private List<GameObject> pathLines = new List<GameObject>();   // 직선 프리팹들을 저장하는 리스트
 
     // 상태 변수
-    private bool hasMoved = false; // 실프가 한 번이라도 이동했는지 여부를 저장
     public bool isControllable = false; // 실프가 조작 가능한 상태인지 여부
     private bool isMoving = false; // 이동 중인지 여부를 나타내는 변수
+
+    public Animator sylphanimator;
 
     // 초기 설정 및 컴포넌트 찾기
     private void Start()
@@ -59,14 +59,15 @@ public class Sylph : MonoBehaviour
         MoveToCell(gridPosition); // 초기 위치로 이동 설정
         uiManager.negativeEndTurnButton();
         // 초기 위치를 설정할 때 Y 좌표를 1.3으로 고정하고, x축 -90도 회전 적용
-        transform.position = new Vector3(transform.position.x, 1.1f, transform.position.z);
+        transform.position = new Vector3(transform.position.x, 0.65f, transform.position.z);
         transform.rotation = Quaternion.Euler(0, 90, transform.rotation.eulerAngles.z);
+
+        sylphanimator = GetComponent<Animator>();
     }
 
     public void SetControllable(bool canControl)
     {
         isControllable = canControl; // 실프가 조작 가능한지 여부 설정
-        Debug.Log($"실프 조작 가능 상태: {isControllable}"); // 조작 가능 상태 출력
     }
 
     public void SylphTurn()
@@ -212,7 +213,7 @@ public class Sylph : MonoBehaviour
                 }
                 else
                 {
-                    Debug.Log("그리드 경계를 벗어나있어 경로를 설정할 수 없습니다."); // 경계 밖이라면 경고 메시지 출력
+
                 }
             }
         }
@@ -338,33 +339,39 @@ public class Sylph : MonoBehaviour
     public IEnumerator StartMovement()
     {
         isMoving = true;
-        // 첫 번째 셀을 건너뛰기 위해 i를 1로 설정
+
+        // 첫 번째 활성화된 셀을 건너뛰기 위해 i를 1로 설정
         for (int i = 1; i < activatedCells.Count; i++)
         {
             Vector2Int cellPosition = activatedCells[i];
-
-            // 목표 위치의 Y 좌표를 1.3으로 고정
-            Vector3 targetPosition = gridOrigin + new Vector3(cellPosition.x * cellWidth, 1.1f, cellPosition.y * cellHeight);
-
-            // 방향을 계산하여 y축 회전만 설정 (x축 회전 유지)
+            Vector3 targetPosition = gridOrigin + new Vector3(cellPosition.x * cellWidth, 0.55f, cellPosition.y * cellHeight);
             Vector3 direction = (targetPosition - transform.position).normalized;
-            if (direction != Vector3.zero) // 방향 벡터가 0이 아닐 때만 회전
-            {
-                Quaternion targetRotation = Quaternion.Euler(0, Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z)).eulerAngles.y, 0);
+            Quaternion targetRotation = Quaternion.Euler(0, Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z)).eulerAngles.y, 0);
 
-                while (Quaternion.Angle(transform.rotation, targetRotation) > 0.1f) // 목표 회전에 도달할 때까지 회전
-                {
-                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 30); // 회전 속도 조정 가능
-                    yield return null;
-                }
-            }
-            // 캐릭터가 목표 위치에 도달할 때까지 이동 (Y 좌표는 1.3으로 고정)
-            while (Vector3.Distance(transform.position, targetPosition) > 0.1f)
+            // 이동 애니메이션 시작
+            sylphanimator.SetBool("isMoving", true);
+
+            // 회전
+            while (Quaternion.Angle(transform.rotation, targetRotation) > 0.1f)
             {
-                transform.position = Vector3.MoveTowards(transform.position, targetPosition, Time.deltaTime * 7); // 속도 조정
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 50);
                 yield return null;
             }
+
+            // 이동
+            while (Vector3.Distance(transform.position, targetPosition) > 0.1f)
+            {
+                transform.position = Vector3.MoveTowards(transform.position, targetPosition, Time.deltaTime * 5f);
+                yield return null;
+            }
+
+            yield return new WaitForSeconds(0f); // 각 위치에서 대기 시간
         }
+        sylphanimator.SetBool("isMoving", false);
+        sylphanimator.SetTrigger("moveStop");
+
+        // Y 좌표를 0.5로 설정
+        transform.position = new Vector3(transform.position.x, 0.65f, transform.position.z);
 
         uiManager.negativeEndTurnButton();
         ClearActivatedCells();

@@ -37,6 +37,13 @@ public class TurnManager : MonoBehaviour
 
     public CharacterBase character;
 
+    private bool isGameOver = false; // 게임 종료 상태
+
+    public void EndGame()
+    {
+        isGameOver = true; // 게임 종료 상태로 설정
+    }
+
     void Awake()
     {
         gridManager.GenerateGrid();
@@ -80,6 +87,8 @@ public class TurnManager : MonoBehaviour
 
     public void Update()
     {
+        if (isGameOver) return; // 게임 종료 상태면 동작 멈춤
+
         if (isCharacterTurn)
         {
             if (Input.GetMouseButtonUp(1))
@@ -93,11 +102,9 @@ public class TurnManager : MonoBehaviour
     {
         charactersPlaced++;
         activeCharacters.Add(character);
-        Debug.Log($"캐릭터 배치 완료: 현재 {charactersPlaced}명 배치됨");
 
         if (charactersPlaced >= 4)
         {
-            Debug.Log("모든 캐릭터 배치 완료, 실프의 턴 시작");
             gridManager.ResetGridColors();
             StartSylphTurn();
         }
@@ -110,12 +117,15 @@ public class TurnManager : MonoBehaviour
 
     private void StartSylphTurn()
     {
+        if (isGameOver) return; // 게임 종료 상태면 동작 멈춤
+
         turnIndicatorManager.ShowTurnIndicator(TurnIndicatorManager.TurnType.SylphTurn);
 
         if (uiManager != null)
         {
             if (!FirstSylphTurn)
             {
+                sylph.sylphanimator.SetTrigger("moveStart");
                 uiManager.DecreaseTurn();
             }
         }
@@ -123,7 +133,6 @@ public class TurnManager : MonoBehaviour
         uiManager.characterInfoPanel.SetActive(false);
 
         characters.AddRange(FindObjectsOfType<CharacterBase>());
-        Debug.Log("실프 이동 턴 시작");
 
         sylph.ClearEncounteredCharacters();
         sylph.SetControllable(true);
@@ -192,7 +201,6 @@ public class TurnManager : MonoBehaviour
         }
         sylph.SetControllable(false);
         isSylphTurn = false;
-        Debug.Log("실프 턴 종료");
 
         activeCharacters = sylph.GetEncounteredCharacters();
         if (activeCharacters.Count > 0)
@@ -203,20 +211,20 @@ public class TurnManager : MonoBehaviour
         }
         else
         {
-            Debug.Log("마주친 캐릭터가 없어 턴을 종료합니다.");
             ResetTurn();
         }
     }
 
     public void StartCharacterTurn()
     {
+        if (isGameOver) return; // 게임 종료 상태면 동작 멈춤
+
         if (currentCharacterIndex < activeCharacters.Count)
         {
             isCharacterTurn = true;
             CharacterBase currentCharacter = activeCharacters[currentCharacterIndex];
             // 현재 턴의 캐릭터 정보를 UIManager에 전달하여 UI 업데이트
             uiManager.UpdateCharacterUI(currentCharacter);
-            Debug.Log($"{currentCharacter.name}의 턴 시작");
             currentCharacter.SetControllable(true); // 현재 캐릭터 조작 가능 설정
 
             currentCharacter.Receivemana = currentCharacter.mana;
@@ -240,18 +248,18 @@ public class TurnManager : MonoBehaviour
         }
         else
         {
-            Debug.Log("모든 캐릭터의 턴이 종료되었습니다.");
             ResetTurn(); 
         }
     }
 
     public void EndCharacterTurn()
     {
+        if (isGameOver) return; // 게임 종료 상태면 동작 멈춤
+
         if (isCharacterTurn)
         {
             CharacterBase currentCharacter = activeCharacters[currentCharacterIndex];
             currentCharacter.SetControllable(false); // 현재 캐릭터 조작 비활성화
-            Debug.Log($"{currentCharacter.name}의 턴 종료");
 
             // 활성화된 오라가 있으면 삭제
             if (activeAura != null)
@@ -272,7 +280,6 @@ public class TurnManager : MonoBehaviour
                 // 모든 캐릭터의 턴이 종료된 경우 버튼을 활성화하여 이동 시작을 대기
                 UIManager uiManager = FindObjectOfType<UIManager>();
                 uiManager.ActivateEndTurnButton(); // 버튼 활성화
-                Debug.Log("모든 캐릭터의 턴이 종료되었습니다. 이동 버튼을 눌러서 이동을 시작하세요.");
             }
         }
     }
@@ -310,24 +317,23 @@ public class TurnManager : MonoBehaviour
         }
 
         isCharacterTurn = false;
-        Debug.Log("모든 캐릭터의 행동이 완료되었습니다.");
         ResetTurn(); // 턴 초기화 및 적 턴 시작
     }
 
     public IEnumerator MoveCharacter(CharacterBase character)
     {
         yield return StartCoroutine(character.StartMovement()); // 캐릭터의 이동 실행
-        Debug.Log($"{character.name} 이동 완료");
     }
     public IEnumerator AttackCharacter(CharacterBase character)
     {
         character.UseSkillBasedOnMana(this); // 캐릭터의 스킬 사용
-        Debug.Log($"{character.name} 공격 완료");
         yield return new WaitForSeconds(0.5f); // 공격 후 대기 시간
     }
 
     public void ResetTurn()
     {
+        if (isGameOver) return; // 게임 종료 상태면 동작 멈춤
+
         StartCoroutine(ResetTurnWithDelay());
     }
 
@@ -347,7 +353,8 @@ public class TurnManager : MonoBehaviour
     }
     public void EnemyTurn()
     {
-        Debug.Log("적 턴이 시작됩니다.");
+        if (isGameOver) return; // 게임 종료 상태면 동작 멈춤
+
         StartCoroutine(HandleEnemyMovement());
     }
 

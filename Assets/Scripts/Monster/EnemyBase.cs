@@ -23,7 +23,7 @@ public abstract class EnemyBase : MonoBehaviour
     public int HP; // Health points
     public int MoveCount; // Number of tiles enemy can move
     public int MaxMoveCount { get; protected set; } // Allow derived classes to set it
-    public int AttackDamage;// Damage dealt to player
+    public int AttackDamage = 1;// Damage dealt to player
     public int DetectRange; // Default detection range for detecting targets
     public int AttackRange; // Range for attacking (adjacent tiles)
     public float moveSpeed;
@@ -157,7 +157,6 @@ public abstract class EnemyBase : MonoBehaviour
         // Log the new target selection for debugging
         if (newTarget != null)
         {
-            Debug.Log($"New target selected: {newTarget.name}");
         }
 
         return newTarget;
@@ -172,7 +171,6 @@ public abstract class EnemyBase : MonoBehaviour
         if (detectedTargets.Count == 0)
         {
             Target = SelectNearestCharacter(gridManager.characters); // Select the nearest character if no one is in range
-            Debug.Log($"{name} selected the nearest target: {Target?.name}");
             return Target;
         }
 
@@ -183,7 +181,6 @@ public abstract class EnemyBase : MonoBehaviour
             if (Target == null || Target != detectedTargets[0])
             {
                 Target = detectedTargets[0];
-                Debug.Log($"{name} detected one target and selected: {Target?.name}");
             }
             return Target;
         }
@@ -197,7 +194,6 @@ public abstract class EnemyBase : MonoBehaviour
             if (Target == null || Target != newTarget)
             {
                 Target = newTarget;
-                Debug.Log($"{name} selected a new target: {Target?.name}");
             }
             // Update Target if it is different or if we have a new higher-priority target
         }
@@ -228,7 +224,6 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected Vector2Int GetValidAdjacentPosition(Vector2Int targetPosition)
     {
-        Debug.Log("GetValidAdjacentPosition called");
 
         // Possible moves for adjacency (up, down, left, right)
         Vector2Int[] directions = {
@@ -840,6 +835,8 @@ public abstract class EnemyBase : MonoBehaviour
         if (isDead) return;
 
         isDead = true; // 죽음 상태로 설정
+
+        FindObjectOfType<GameManager>().IncrementEnemyDeath();
 
         // 애니메이션 트리거 설정
         if (animator != null)

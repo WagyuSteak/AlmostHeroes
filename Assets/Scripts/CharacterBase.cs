@@ -344,15 +344,13 @@ public class CharacterBase : MonoBehaviour
         else if (mana <= 5)
         {
             UseSkill(1, turnManager); // 1스킬 사용
-            Debug.Log("1스킬 사용: 마나 2~5");
         }
         else
         {
             UseSkill(2, turnManager); // 2스킬 사용
-            Debug.Log("2스킬 사용: 마나 6 이상");
         }
     }
-    public void ApplyDamageToTargets(int damage, TurnManager turnManager)
+    public virtual void ApplyDamageToTargets(int damage, TurnManager turnManager)
     {
         if (turnManager.characterTargetMap.TryGetValue(this, out var targets))
         {
@@ -372,14 +370,14 @@ public class CharacterBase : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("타겟 리스트를 찾을 수 없습니다.");
+
         }
     }
 
     // 기본 스킬 사용 메서드 (상속 클래스에서 오버라이드 예정)
     public virtual void UseSkill(int skillNumber, TurnManager turnManager)
     {
-        Debug.Log($"기본 스킬 {skillNumber} 사용");
+
     }
 
     public void ClearPathIndicators()
@@ -495,6 +493,8 @@ public class CharacterBase : MonoBehaviour
 
     public virtual void Die()
     {
+        FindObjectOfType<GameManager>().IncrementCharacterDeath();
+
         activatedCells.Clear();
         foreach (var indicator in indicators)
         {
@@ -524,38 +524,5 @@ public class CharacterBase : MonoBehaviour
     public int GetActivatedCellsCount()
     {
         return activatedCells.Count; // 활성화된 셀의 개수를 반환
-    }
-
-    public void HandleCollision(Vector2Int startPosition, Vector2Int collisionPosition)
-    {
-        // 충돌 위치의 대상 확인 (캐릭터 또는 적)
-        CharacterBase collidedTarget = gridManager.GetCharacterAtPosition(collisionPosition);
-        EnemyBase collidedEnemy = gridManager.GetEnemyAtPosition(collisionPosition);
-
-        if (collidedTarget != null)
-        {
-            collidedTarget.TakeDamage(1); // 부딪힌 캐릭터 데미지
-            Debug.Log($"{collidedTarget.name}이(가) {startPosition}에서 밀려와 충돌로 데미지 1을 입었습니다.");
-        }
-        else if (collidedEnemy != null)
-        {
-            collidedEnemy.TakeDamage(1); // 부딪힌 적 데미지
-            Debug.Log($"{collidedEnemy.name}이(가) {startPosition}에서 밀려와 충돌로 데미지 1을 입었습니다.");
-        }
-
-        // 밀린 대상도 데미지 입음
-        CharacterBase pushingTarget = gridManager.GetCharacterAtPosition(startPosition);
-        EnemyBase pushingEnemy = gridManager.GetEnemyAtPosition(startPosition);
-
-        if (pushingTarget != null)
-        {
-            pushingTarget.TakeDamage(1);
-            Debug.Log($"{pushingTarget.name}이(가) 충돌로 인해 데미지 1을 입었습니다.");
-        }
-        else if (pushingEnemy != null)
-        {
-            pushingEnemy.TakeDamage(1);
-            Debug.Log($"{pushingEnemy.name}이(가) 충돌로 인해 데미지 1을 입었습니다.");
-        }
     }
 }

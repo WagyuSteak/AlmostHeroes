@@ -25,7 +25,12 @@ public class TurnIndicatorManager : MonoBehaviour
 
     private void Start()
     {
-        // 시작 시 모든 이미지 비활성화
+        // sylphTurnIndicator를 사용하기 전에 Null 체크가 필요합니다.
+        if (sylphTurnIndicator == null)
+        {
+            Debug.LogError("Sylph Turn Indicator has not been assigned in the Inspector.");
+        }
+
         sylphTurnIndicator.SetActive(false);
         characterTurnIndicator.SetActive(false);
         enemyTurnIndicator.SetActive(false);

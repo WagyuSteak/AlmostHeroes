@@ -32,7 +32,6 @@ public class Archer : CharacterBase
     {
         if (projectilePrefab == null)
         {
-            Debug.LogError("Projectile prefab is null!");
             return;
         }
 
@@ -43,7 +42,6 @@ public class Archer : CharacterBase
         spawnPosition.y = 1.5f; // Y 좌표 고정값
 
         GameObject projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
-        Debug.Log($"Projectile created at {spawnPosition} with offset {directionOffset}");
 
         // 최종 위치 계산
         Vector2Int targetGridPosition = CalculateProjectileTarget(pathOrigin, pathDirection, attackRange);
@@ -108,7 +106,6 @@ public class Archer : CharacterBase
 
         // 투사체 파괴
         Destroy(projectile);
-        Debug.Log($"Projectile reached target at {targetPosition} and was destroyed");
     }
 
     private Vector2Int GetForwardDirection()
@@ -126,7 +123,6 @@ public class Archer : CharacterBase
         {
             if (gridManager.IsCellActivatedByCharacter(targetGridPosition))
             {
-                Debug.Log("해당 셀은 이미 다른 캐릭터에 의해 활성화되었습니다. 이동할 수 없습니다.");
                 return;
             }
 
@@ -300,12 +296,11 @@ public class Archer : CharacterBase
 
             // 이동 애니메이션 시작
             Archeranimator.SetBool("isMoving", true);
-            yield return new WaitForSeconds(0.85f); // 애니메이션이 시작되도록 잠깐 대기
 
             // 회전
             while (Quaternion.Angle(transform.rotation, targetRotation) > 0.1f)
             {
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 30);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 50);
                 yield return null;
             }
 
@@ -316,7 +311,7 @@ public class Archer : CharacterBase
                 yield return null;
             }
 
-            yield return new WaitForSeconds(0.25f); // 각 위치에서 대기 시간
+            yield return new WaitForSeconds(0.15f); // 각 위치에서 대기 시간
         }
         Archeranimator.SetBool("isMoving", false); // 이동 애니메이션 종료
         ClearIndicators(); // 이동이 끝난 후 인디케이터 초기화

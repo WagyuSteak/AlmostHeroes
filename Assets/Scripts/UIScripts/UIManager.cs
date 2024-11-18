@@ -33,7 +33,6 @@ public class UIManager : MonoBehaviour
     public Transform turnContainer; // 턴 프리팹을 담을 컨테이너
     private List<GameObject> turnIndicators = new List<GameObject>(); // 현재 표시된 턴 프리팹 리스트
 
-    private bool isCharacterPlacementActive = false; // 캐릭터 배치 작업이 활성화되어 있는지 여부
     private PrefabSpawner prefabSpawner; // 캐릭터 배치를 관리하는 PrefabSpawner 참조
 
     // Start is called before the first frame update

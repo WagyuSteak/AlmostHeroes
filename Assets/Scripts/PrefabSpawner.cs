@@ -9,7 +9,6 @@ public class PrefabSpawner : MonoBehaviour
     public TurnManager turnManager; // 턴 관리를 담당하는 TurnManager의 참조
     public GridManager gridManager; // 그리드 관리와 셀 활성화를 담당하는 GridManager의 참조
     public Button[] characterButtons; // 캐릭터 생성 버튼들
-    public event Action OnCharacterPlaced; // 캐릭터가 배치될 때 발생하는 이벤트
     public Vector3 defaultRotation; // 캐릭터가 생성될 때의 기본 회전 각도 (x, y, z)
 
     private List<GameObject> tempPlacedCharacters = new List<GameObject>(); // 임시로 배치된 캐릭터들을 저장하는 리스트
