@@ -21,8 +21,6 @@ public class FireSlime : EnemyBase
 
         FindObjectOfType<TurnManager>().RegisterEnemy(this);
     }
-<<<<<<< Updated upstream
-=======
 
     public override void TakeDamage(int damageAmount)
     {
@@ -110,5 +108,4 @@ public class FireSlime : EnemyBase
             }
         }
     }
->>>>>>> Stashed changes
 }

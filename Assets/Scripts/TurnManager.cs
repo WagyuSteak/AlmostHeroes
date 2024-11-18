@@ -81,11 +81,7 @@ public class TurnManager : MonoBehaviour
 
     private void Update()
     {
-        // 추가된 로직: 'e' 키를 눌렀을 때 캐릭터의 최근 행동을 취소하고 다시 턴을 시작
-        if (isCharacterTurn && Input.GetKeyDown(KeyCode.E))
-        {
-            UndoLastCharacterAction();
-        }
+
     }
 
     public void OnCharacterPlaced(CharacterBase character)
@@ -357,10 +353,7 @@ public class TurnManager : MonoBehaviour
         }
     }
 
-<<<<<<< Updated upstream:Assets/Scripts/TurnManager.cs
-    // 'e' 키를 눌렀을 때 캐릭터의 최근 활성화된 셀을 취소하는 메서드
-    public void UndoLastCharacterAction()
-=======
+
     private void ClearAllEnemyHighlightedCells()
     {
         // Combine all enemy lists into a single collection
@@ -394,7 +387,7 @@ public class TurnManager : MonoBehaviour
     }
 
     public void DeregisterEnemy(EnemyBase enemy)
->>>>>>> Stashed changes:Assets/Scripts/UIScripts/TurnManager.cs
+
     {
         if (currentCharacterIndex > 0 && currentCharacterIndex <= activatedCellCounts.Count)
         {

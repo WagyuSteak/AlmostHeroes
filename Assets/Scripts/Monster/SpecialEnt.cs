@@ -24,9 +24,6 @@ public class SpecialEnt : EnemyBase
 
         FindObjectOfType<TurnManager>().RegisterEnemy(this);
     }
-<<<<<<< Updated upstream
-}
-=======
 
     public override List<CharacterBase> GetCharactersInAttackRange()
     {
@@ -134,5 +131,4 @@ public class SpecialEnt : EnemyBase
             yield return new WaitForSeconds(0.4f); // Adjust for desired pacing between attacks
         }
     }
-}    
->>>>>>> Stashed changes
+}   
