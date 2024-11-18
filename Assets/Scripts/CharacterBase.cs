@@ -24,8 +24,14 @@ public class CharacterBase : MonoBehaviour
     public int Shield;
     public int Damage;
     public int attackRange; // 사거리 설정
+    public int Receivemana;
+    public int ReceivemoveCount;
+
+
     public float cellWidth; // 그리드 셀의 너비
     public float cellHeight; // 그리드 셀의 높이
+    
+    
     public Vector3 gridOrigin; // 그리드의 월드 좌표 상의 원점 위치
 
     public GameObject indicatorPrefab; // 인디케이터 프리팹
@@ -38,7 +44,7 @@ public class CharacterBase : MonoBehaviour
 
     // 이동 및 포인터 관련 변수들
     public GameObject pointerPrefab; // 마우스 포인터로 사용할 프리팹
-    public GameObject pathIndicatorPrefab; // 경로를 표시하는 오브젝트 프리팹
+    public GameObject pathIndicatorPrefab; // 경로를 표시하는 오브젝트 프리팹 
     public float pathIndicatorHeight = 1.5f; // 경로 표시 오브젝트의 Y축 높이
 
     public Camera mainCamera; // 메인 카메라 참조 - 마우스 위치를 화면 상에서 감지하기 위해 사용
@@ -73,6 +79,7 @@ public class CharacterBase : MonoBehaviour
             cellHeight = gridManager.cellHeight;
         }
     }
+
 
     public virtual void SetGridPosition(Vector2Int position)
     {
@@ -142,7 +149,7 @@ public class CharacterBase : MonoBehaviour
             }
         }
     }
-    protected void UndoAllActivatedCells()
+    public void UndoAllActivatedCells()
     {
         if (activatedCells.Count > 0)
         {
@@ -165,9 +172,8 @@ public class CharacterBase : MonoBehaviour
             }
             pathLines.Clear();
 
-            // 이동 가능 횟수 초기화
-            mana = 0;
-            MoveCount = 6;
+            mana = Receivemana; // 초기 마나 값으로 복원
+            MoveCount = ReceivemoveCount; // 초기 이동 횟수로 복원
 
             currentGridPosition = startGridPosition;
             Debug.Log($"캐릭터 현재 위치: {currentGridPosition}");
@@ -303,7 +309,7 @@ public class CharacterBase : MonoBehaviour
         for (int i = 1; i < activatedCells.Count; i++)
         {
             Vector2Int cellPosition = activatedCells[i];
-            Vector3 targetPosition = gridOrigin + new Vector3(cellPosition.x * cellWidth, 1.3f, cellPosition.y * cellHeight);
+            Vector3 targetPosition = gridOrigin + new Vector3(cellPosition.x * cellWidth, 0.55f, cellPosition.y * cellHeight);
             Vector3 direction = (targetPosition - transform.position).normalized;
             Quaternion targetRotation = Quaternion.Euler(0, Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z)).eulerAngles.y, 0);
 
@@ -475,6 +481,12 @@ public class CharacterBase : MonoBehaviour
             Debug.Log($"{name}이(가) {damageToApply}의 피해를 입었습니다. 남은 체력: {Health}");
         }
 
+        // UIManager에 체력 변화 알림
+        if (uiManager != null && isMyTurn)
+        {
+            uiManager.UpdateHealthUI(this);
+        }
+
         if (Health <= 0)
         {
             Die();
@@ -514,44 +526,36 @@ public class CharacterBase : MonoBehaviour
         return activatedCells.Count; // 활성화된 셀의 개수를 반환
     }
 
-    public void RemoveActivatedCells(int startIndex, int count)
+    public void HandleCollision(Vector2Int startPosition, Vector2Int collisionPosition)
     {
-        if (startIndex >= 0 && count > 0 && startIndex < activatedCells.Count)
+        // 충돌 위치의 대상 확인 (캐릭터 또는 적)
+        CharacterBase collidedTarget = gridManager.GetCharacterAtPosition(collisionPosition);
+        EnemyBase collidedEnemy = gridManager.GetEnemyAtPosition(collisionPosition);
+
+        if (collidedTarget != null)
         {
-            for (int i = 0; i < count; i++)
-            {
-                if (activatedCells.Count > startIndex)
-                {
-                    Vector2Int cellToDeactivate = activatedCells[startIndex]; // 비활성화할 셀 선택
-                    gridManager.DeactivateCell(cellToDeactivate); // 그리드 매니저를 통해 셀 비활성화
+            collidedTarget.TakeDamage(1); // 부딪힌 캐릭터 데미지
+            Debug.Log($"{collidedTarget.name}이(가) {startPosition}에서 밀려와 충돌로 데미지 1을 입었습니다.");
+        }
+        else if (collidedEnemy != null)
+        {
+            collidedEnemy.TakeDamage(1); // 부딪힌 적 데미지
+            Debug.Log($"{collidedEnemy.name}이(가) {startPosition}에서 밀려와 충돌로 데미지 1을 입었습니다.");
+        }
 
-                    activatedCells.RemoveAt(startIndex); // 리스트에서 제거
-                }
-            }
-            // 모든 경로와 인디케이터 제거
-            foreach (var circle in pathCircles)
-            {
-                Destroy(circle);
-            }
-            pathCircles.Clear();
+        // 밀린 대상도 데미지 입음
+        CharacterBase pushingTarget = gridManager.GetCharacterAtPosition(startPosition);
+        EnemyBase pushingEnemy = gridManager.GetEnemyAtPosition(startPosition);
 
-            foreach (var line in pathLines)
-            {
-                Destroy(line);
-            }
-            pathLines.Clear();
-            ClearIndicators();
-            gridManager.RemoveCharacterFromGrid(this);
-
-            // 이동 가능 횟수 초기화
-            MoveCount = 6;
-
-            currentGridPosition = startGridPosition;
-
-            Debug.Log($"캐릭터 현재 위치: {currentGridPosition}");
-
-            Debug.Log($"최근 {count}개의 활성화된 셀이 비활성화되었습니다.");
+        if (pushingTarget != null)
+        {
+            pushingTarget.TakeDamage(1);
+            Debug.Log($"{pushingTarget.name}이(가) 충돌로 인해 데미지 1을 입었습니다.");
+        }
+        else if (pushingEnemy != null)
+        {
+            pushingEnemy.TakeDamage(1);
+            Debug.Log($"{pushingEnemy.name}이(가) 충돌로 인해 데미지 1을 입었습니다.");
         }
     }
-
 }

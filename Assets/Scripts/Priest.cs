@@ -1,32 +1,234 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.Experimental.GraphView;
+using System.Linq;
 using UnityEngine;
-using UnityEngine.TextCore.Text;
 
 public class Priest : CharacterBase
 {
+    private Animator Priestanimator;
+    private List<object> collisionTargets = new List<object>(); // 캐릭터와 적을 모두 저장
+
     protected override void Start()
     {
         base.Start();
         IsRanged = true;
+
+        // Animator 초기화
+        Priestanimator = GetComponent<Animator>();
+        if (Priestanimator == null)
+        {
+            Debug.LogError("Priest Animator가 할당되지 않았습니다!");
+        }
     }
+
     public override void UseSkill(int skillNumber, TurnManager turnManager)
     {
         if (skillNumber == 1)
         {
-            int damage = Damage;
-            ApplyDamageToTargets(damage, turnManager);
+            Priestanimator.SetTrigger("skill1");
+            int damage = Damage - 1; // 데미지를 기본 공격력보다 1 낮게 설정
+
+            // 넉백 후 이동 애니메이션 적용
+            if (turnManager.characterTargetMap.TryGetValue(this, out var targets))
+            {
+                var (characterTargets, enemyTargets) = targets;
+                foreach (var target in characterTargets)
+                {
+                    Vector3 knockbackWorldPosition = gridManager.GetWorldPositionFromGrid(target.GetCurrentGridPosition());
+                    StartCoroutine(KnockbackCoroutine(target, knockbackWorldPosition, 0.5f)); // 넉백 애니메이션 실행 (0.5초 동안)
+                }
+                // 적 타겟 처리
+                foreach (var target in enemyTargets)
+                {
+                    Vector3 knockbackWorldPosition = gridManager.GetWorldPositionFromGrid(target.CurrentGridPosition);
+                    StartCoroutine(KnockbackCoroutine(target, knockbackWorldPosition, 0.5f));
+                }
+            }
+        }
+        else if (skillNumber ==2)
+        {
+            Priestanimator.SetTrigger("skill2"); 
+            // else: 기본 회복 효과
+            if (turnManager.characterTargetMap.TryGetValue(this, out var targets))
+            {
+                var (characterTargets, _) = targets;
+
+                foreach (var ally in characterTargets)
+                {
+                    // 아군의 체력만 회복
+                    ally.Health = Mathf.Min(ally.Health + 1, ally.MaxHealth); // 체력을 1 증가시키며 최대 체력을 초과하지 않음
+                    Debug.Log($"{ally.name}의 체력 +1");
+                }
+            }
+        }
+    }
+    private void ApplyKnockback(object target)
+    {
+        Vector2Int direction, knockbackDirection, knockbackPosition;
+
+        if (target is CharacterBase characterTarget)
+        {
+            // 캐릭터 넉백 처리
+            direction = characterTarget.GetCurrentGridPosition() - this.GetCurrentGridPosition();
+            knockbackDirection = new Vector2Int(Mathf.Clamp(direction.x, -1, 1), Mathf.Clamp(direction.y, -1, 1));
+            knockbackPosition = characterTarget.GetCurrentGridPosition() + knockbackDirection;
+
+            if (gridManager.IsWithinGridBounds(knockbackPosition) &&
+                !gridManager.IsObstaclePosition(knockbackPosition) &&
+                !gridManager.IsCharacterPosition(knockbackPosition) &&
+                !gridManager.IsEnemyPosition(knockbackPosition) &&
+                !gridManager.IsSylphPosition(knockbackPosition))
+            {
+                gridManager.RemoveCharacterFromGrid(characterTarget);
+                characterTarget.SetGridPosition(knockbackPosition);
+                gridManager.AddCharacterToGrid(knockbackPosition, characterTarget);
+                Debug.Log($"{characterTarget.name}이(가) {knockbackDirection} 방향으로 한 칸 넉백되었습니다. 현재 위치: {characterTarget.GetCurrentGridPosition()}");
+            }
+            else
+            {
+                // 넉백 대상 추가
+                collisionTargets.Add(target);
+
+                // 충돌 대상 처리
+                if (gridManager.IsCharacterPosition(knockbackPosition))
+                {
+                    var collidedCharacter = gridManager.GetCharacterAtPosition(knockbackPosition);
+                    if (collidedCharacter != null)
+                    {
+                        collisionTargets.Add(collidedCharacter);
+                    }
+                }
+
+                if (gridManager.IsEnemyPosition(knockbackPosition))
+                {
+                    var collidedEnemy = gridManager.GetEnemyAtPosition(knockbackPosition);
+                    if (collidedEnemy != null)
+                    {
+                        collisionTargets.Add(collidedEnemy);
+                    }
+                }
+
+                if (gridManager.IsObstaclePosition(knockbackPosition))
+                {
+                    Debug.Log($"장애물에 충돌: {target}");
+                }
+            }
+        }
+        else if (target is EnemyBase enemyTarget)
+        {
+            // 적 넉백 처리
+            direction = enemyTarget.CurrentGridPosition - this.GetCurrentGridPosition();
+            knockbackDirection = new Vector2Int(Mathf.Clamp(direction.x, -1, 1), Mathf.Clamp(direction.y, -1, 1));
+            knockbackPosition = enemyTarget.CurrentGridPosition + knockbackDirection;
+
+            if (gridManager.IsWithinGridBounds(knockbackPosition) &&
+                !gridManager.IsObstaclePosition(knockbackPosition) &&
+                !gridManager.IsCharacterPosition(knockbackPosition) &&
+                !gridManager.IsEnemyPosition(knockbackPosition) &&
+                !gridManager.IsSylphPosition(knockbackPosition))
+            {
+                gridManager.RemoveEnemyPosition(enemyTarget.CurrentGridPosition);
+                enemyTarget.CurrentGridPosition = knockbackPosition;
+                gridManager.AddEnemyPosition(knockbackPosition, enemyTarget.gameObject);
+                Debug.Log($"{enemyTarget.name}이(가) {knockbackDirection} 방향으로 한 칸 넉백되었습니다. 현재 위치: {enemyTarget.CurrentGridPosition}");
+            }
+            else
+            {
+                // 넉백 대상 추가
+                collisionTargets.Add(target);
+
+                // 충돌 대상 처리
+                if (gridManager.IsCharacterPosition(knockbackPosition))
+                {
+                    var collidedCharacter = gridManager.GetCharacterAtPosition(knockbackPosition);
+                    if (collidedCharacter != null)
+                    {
+                        collisionTargets.Add(collidedCharacter);
+                    }
+                }
+
+                if (gridManager.IsEnemyPosition(knockbackPosition))
+                {
+                    var collidedEnemy = gridManager.GetEnemyAtPosition(knockbackPosition);
+                    if (collidedEnemy != null)
+                    {
+                        collisionTargets.Add(collidedEnemy);
+                    }
+                }
+
+                if (gridManager.IsObstaclePosition(knockbackPosition))
+                {
+                    Debug.Log($"장애물에 충돌: {target}");
+                }
+            }
+        }
+    }
+
+    private IEnumerator KnockbackCoroutine(object target, Vector3 targetPosition, float duration)
+    {
+        float elapsedTime = 0;
+        Vector3 startingPosition;
+
+        // 타겟의 시작 위치를 가져오기
+        if (target is CharacterBase characterTarget)
+        {
+            startingPosition = characterTarget.transform.position;
+        }
+        else if (target is EnemyBase enemyTarget)
+        {
+            startingPosition = enemyTarget.transform.position;
         }
         else
         {
-            // 기본 회복 효과 적용
-            foreach (var ally in turnManager.characterTargetMap[this].Item1)
+            Debug.LogError("Invalid target for knockback.");
+            yield break;
+        }
+
+        // 부드러운 이동 처리
+        while (elapsedTime < duration)
+        {
+            if (target is CharacterBase character)
             {
-                ally.Health = Mathf.Min(ally.Health + 1, ally.MaxHealth);
-                Debug.Log($"{ally.name}의 체력 +1");
+                character.transform.position = Vector3.Lerp(startingPosition, new Vector3(targetPosition.x, startingPosition.y, targetPosition.z), elapsedTime / duration);
+                character.transform.rotation = Quaternion.LookRotation((transform.position - character.transform.position).normalized, Vector3.up);
+            }
+            else if (target is EnemyBase enemy)
+            {
+                enemy.transform.position = Vector3.Lerp(startingPosition, new Vector3(targetPosition.x, startingPosition.y, targetPosition.z), elapsedTime / duration);
+                enemy.transform.rotation = Quaternion.LookRotation((transform.position - enemy.transform.position).normalized, Vector3.up);
+            }
+
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        // 이동을 정확히 완료
+        if (target is CharacterBase characterFinal)
+        {
+            characterFinal.transform.position = new Vector3(targetPosition.x, startingPosition.y, targetPosition.z);
+        }
+        else if (target is EnemyBase enemyFinal)
+        {
+            enemyFinal.transform.position = new Vector3(targetPosition.x, startingPosition.y, targetPosition.z);
+        }
+
+        // 충돌 대상 피해 적용
+        foreach (var obj in collisionTargets)
+        {
+            if (obj is CharacterBase collidedCharacter)
+            {
+                collidedCharacter.TakeDamage(1);
+                Debug.Log($"{collidedCharacter.name}이(가) 넉백 충돌로 인해 피해를 입었습니다.");
+            }
+            else if (obj is EnemyBase collidedEnemy)
+            {
+                collidedEnemy.TakeDamage(1);
+                Debug.Log($"{collidedEnemy.name}이(가) 넉백 충돌로 인해 피해를 입었습니다.");
             }
         }
+
+        // 충돌 리스트 초기화
+        collisionTargets.Clear();
     }
 
     protected override void ActivateCell(Vector2Int targetGridPosition)
@@ -113,47 +315,42 @@ public class Priest : CharacterBase
         ClearIndicators(); // 기존 인디케이터 제거
         Vector2Int? primaryTargetPosition = null;
 
-        // 1차 범위 내에서 대상 탐색 및 인디케이터 생성
-        int effectiveRange = mana >= 6 ? 1 : attackRange; // 마나 6 이상일 때는 1로 설정
+        int effectiveRange = mana >= 6 ? 1 : attackRange;
+
         for (int i = 1; i <= effectiveRange; i++)
         {
             Vector2Int position = pathOrigin + pathDirection * i;
 
             if (!gridManager.IsWithinGridBounds(position))
             {
-                // 그리드 경계를 벗어나면 반복문 종료, 마지막 위치를 primaryTargetPosition으로 설정
                 primaryTargetPosition = pathOrigin + pathDirection * (i - 1);
                 break;
             }
 
-            // 대상 감지 후 처리
-            if (gridManager.IsEnemyPosition(position) || gridManager.IsCharacterPosition(position) || gridManager.IsSylphPosition(position))
+            if (gridManager.IsEnemyPosition(position) || gridManager.IsCharacterPosition(position) || gridManager.IsObstaclePosition(position))
             {
                 primaryTargetPosition = position;
                 break;
             }
 
-            primaryTargetPosition = position; // 1차 범위의 끝 지점 갱신
+            primaryTargetPosition = position;
         }
 
-        // 대상이 없으면 최대 사거리 위치로 설정
         if (!primaryTargetPosition.HasValue)
         {
             primaryTargetPosition = pathOrigin + pathDirection * effectiveRange;
         }
 
-        // 양 옆 또는 뒤쪽 3x3 인디케이터 표시 (마나 값에 따라)
         List<Vector2Int> secondaryPositions;
         if (mana >= 6)
         {
-            secondaryPositions = GetBehindPatternPositions(primaryTargetPosition.Value, pathDirection); // 9자 패턴
+            secondaryPositions = GetBehindPatternPositions(primaryTargetPosition.Value, pathDirection);
         }
         else
         {
-            secondaryPositions = GetPiercingPositions(primaryTargetPosition.Value, pathDirection); // 전방
+            secondaryPositions = GetPiercingPositions(primaryTargetPosition.Value, pathDirection);
         }
 
-        // 1차 범위의 끝 지점도 2차 범위로 간주하여 인디케이터 표시
         secondaryPositions.Add(primaryTargetPosition.Value);
 
         foreach (var pos in secondaryPositions)
@@ -163,8 +360,7 @@ public class Priest : CharacterBase
                 Vector3 indicatorPos = gridOrigin + new Vector3(pos.x * cellWidth, pathIndicatorHeight, pos.y * cellHeight);
                 GameObject secondaryIndicator = Instantiate(indicatorPrefab, indicatorPos, Quaternion.identity);
 
-                // 마나 값에 따라 머터리얼 설정 분기 처리
-                if (mana >= 6) // 버프 머터리얼 적용
+                if (mana >= 6)
                 {
                     Vector2Int gridPosition = GetGridPosition(indicatorPos);
                     CharacterBase character = gridManager.GetCharacterAtPosition(gridPosition);
@@ -177,9 +373,9 @@ public class Priest : CharacterBase
                         secondaryIndicator.GetComponent<Renderer>().material = emptyMaterial;
                     }
                 }
-                else if (mana <= 5) // 일반 공격 머터리얼 적용
+                else if (mana <= 5)
                 {
-                    if (gridManager.IsEnemyPosition(pos) || gridManager.IsCharacterPosition(pos) || gridManager.IsSylphPosition(pos))
+                    if (gridManager.IsEnemyPosition(pos) || gridManager.IsCharacterPosition(pos))
                     {
                         secondaryIndicator.GetComponent<Renderer>().material = enemyMaterial;
                     }
@@ -221,7 +417,40 @@ public class Priest : CharacterBase
 
         return secondaryPositions;
     }
+    public override IEnumerator StartMovement()
+    {
+        // 첫 번째 활성화된 셀을 건너뛰기 위해 i를 1로 설정
+        for (int i = 1; i < activatedCells.Count; i++)
+        {
+            Vector2Int cellPosition = activatedCells[i];
+            Vector3 targetPosition = gridOrigin + new Vector3(cellPosition.x * cellWidth, 0.55f, cellPosition.y * cellHeight);
+            Vector3 direction = (targetPosition - transform.position).normalized;
+            Quaternion targetRotation = Quaternion.Euler(0, Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z)).eulerAngles.y, 0);
 
+            // 이동 애니메이션 시작
+            Priestanimator.SetBool("isMoving", true);
+            yield return new WaitForSeconds(0.85f); // 애니메이션이 시작되도록 잠깐 대기
+
+            // 회전
+            while (Quaternion.Angle(transform.rotation, targetRotation) > 0.1f)
+            {
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 30);
+                yield return null;
+            }
+
+            // 이동
+            while (Vector3.Distance(transform.position, targetPosition) > 0.1f)
+            {
+                transform.position = Vector3.MoveTowards(transform.position, targetPosition, Time.deltaTime * 7);
+                yield return null;
+            }
+
+            yield return new WaitForSeconds(0.25f); // 각 위치에서 대기 시간
+        }
+        Priestanimator.SetBool("isMoving", false); // 이동 애니메이션 종료
+        ClearIndicators(); // 이동이 끝난 후 인디케이터 초기화
+        ResetCharacterSet();
+    }
     public override void CollectAttackTargets(TurnManager turnManager)
     {
         List<CharacterBase> characterTargets = new List<CharacterBase>();
@@ -241,10 +470,72 @@ public class Priest : CharacterBase
                     Debug.Log($"캐릭터 감지됨: {character.name}, 위치: ({gridPosition.x}, {gridPosition.y})");
                 }
             }
+            else if (gridManager.IsEnemyPosition(gridPosition))
+            {
+                EnemyBase enemy = gridManager.GetEnemyAtPosition(gridPosition);
+                if (enemy != null && enemy.HP > 0)
+                {
+                    enemyTargets.Add(enemy);
+                    Debug.Log($"적 감지됨: {enemy.name}, 위치: ({gridPosition.x}, {gridPosition.y})");
+                }
+            }
         }
 
         // 각 캐릭터의 타겟 리스트를 TurnManager에 저장
         turnManager.SetCharacterTargets(this, characterTargets, enemyTargets);
         ClearIndicators(); // 기존 인디케이터 제거
+
+
+        // 마나 조건: 2 이상 6 미만일 때만 넉백 실행
+        if (mana >= 2 && mana < 6)
+        {
+            foreach (var target in characterTargets.Concat<object>(enemyTargets)) // 두 리스트를 통합
+            {
+                if (target is CharacterBase character)
+                {
+                    // 캐릭터 밀기(넉백)
+                    ApplyKnockback(character);
+                }
+                else if (target is EnemyBase enemy)
+                {
+                    // 적 밀기(넉백)
+                    ApplyKnockback(enemy);
+                }
+            }
+        }
+        else
+        {
+            Debug.Log($"마나 조건 불충족: 현재 마나 {mana}, 넉백 실행 안 함.");
+        }
+    }
+
+    public override void TakeDamage(int damageAmount)
+    {
+        int damageToApply = damageAmount;
+
+        if (Shield > 0)
+        {
+            int shieldAbsorbed = Mathf.Min(Shield, damageToApply);
+            Shield -= shieldAbsorbed;
+            damageToApply -= shieldAbsorbed;
+            Debug.Log($"{name}의 쉴드가 {shieldAbsorbed}만큼 피해를 흡수했습니다. 남은 쉴드: {Shield}");
+        }
+
+        if (damageToApply > 0)
+        {
+            Priestanimator.SetTrigger("hit"); // 피격 애니메이션 재생
+            Health -= damageToApply;
+            Debug.Log($"{name}이(가) {damageToApply}의 피해를 입었습니다. 남은 체력: {Health}");
+        }
+
+        if (Health <= 0)
+        {
+            Die();
+        }
+    }
+    public override void Die()
+    {
+        Priestanimator.SetTrigger("die"); // 사망 애니메이션 재생
+        base.Die(); // 기본 사망 로직 실행
     }
 }

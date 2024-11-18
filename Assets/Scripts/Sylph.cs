@@ -59,9 +59,8 @@ public class Sylph : MonoBehaviour
         MoveToCell(gridPosition); // 초기 위치로 이동 설정
         uiManager.negativeEndTurnButton();
         // 초기 위치를 설정할 때 Y 좌표를 1.3으로 고정하고, x축 -90도 회전 적용
-        transform.position = new Vector3(transform.position.x, 1.05f, transform.position.z);
+        transform.position = new Vector3(transform.position.x, 1.1f, transform.position.z);
         transform.rotation = Quaternion.Euler(0, 90, transform.rotation.eulerAngles.z);
-
     }
 
     public void SetControllable(bool canControl)
@@ -69,7 +68,6 @@ public class Sylph : MonoBehaviour
         isControllable = canControl; // 실프가 조작 가능한지 여부 설정
         Debug.Log($"실프 조작 가능 상태: {isControllable}"); // 조작 가능 상태 출력
     }
-
 
     public void SylphTurn()
     {
@@ -108,7 +106,6 @@ public class Sylph : MonoBehaviour
             else
             {
                 uiManager.negativeEndTurnButton();
-                Debug.Log("현재 위치에 캐릭터가 있어 턴을 종료할 수 없습니다."); // 현재 위치에 캐릭터가 있어 이동할 수 없음을 출력
             }
 
             if (Input.GetMouseButtonDown(0)) // 마우스 왼쪽 버튼이 눌렸을 때
@@ -128,7 +125,6 @@ public class Sylph : MonoBehaviour
                     Destroy(currentPointer); // 포인터 오브젝트 삭제
                 }
             }
-
             if (Input.GetMouseButtonUp(1))
             {
                 UndoAllActivatedCells();
@@ -137,24 +133,24 @@ public class Sylph : MonoBehaviour
     }
     public void UndoAllActivatedCells()
     {
-            if (activatedCells.Count > 0)
+        if (activatedCells.Count > 0)
+        {
+            // 모든 활성화된 셀 제거
+            gridManager.DeactivateCellsForCharacter(activatedCells);
+            activatedCells.Clear();
+
+            // 모든 경로와 인디케이터 제거
+            foreach (var circle in pathCircles)
             {
-                // 모든 활성화된 셀 제거
-                gridManager.DeactivateCellsForCharacter(activatedCells);
-                activatedCells.Clear();
+                Destroy(circle);
+            }
+            pathCircles.Clear();
 
-                // 모든 경로와 인디케이터 제거
-                foreach (var circle in pathCircles)
-                {
-                    Destroy(circle);
-                }
-                pathCircles.Clear();
-
-                foreach (var line in pathLines)
-                {
-                    Destroy(line);
-                }
-                pathLines.Clear();
+            foreach (var line in pathLines)
+            {
+                Destroy(line);
+            }
+            pathLines.Clear();
 
             ClearActivatedCells();
             ClearPathIndicators(); // 경로 표시 오브젝트 초기화
@@ -165,14 +161,10 @@ public class Sylph : MonoBehaviour
             currentMana = maxMana;
 
             gridPosition = startGridPosition;
-                Debug.Log("모든 활성화된 셀을 취소하고 초기화했습니다.");
-            }
-            else
-            {
-                Debug.Log("취소할 활성화된 셀이 없습니다.");
-            }
+            Debug.Log("모든 활성화된 셀을 취소하고 초기화했습니다.");
+        }
     }
-        public void GiveMana()
+    public void GiveMana()
     {
         TransferManaToEncounteredCharacters(); // 마주친 캐릭터들에게 마나를 전달
         DisplayEncounteredCharacters(); // 마주친 캐릭터들을 출력
@@ -203,7 +195,6 @@ public class Sylph : MonoBehaviour
             }
         }
     }
-
     private void HandlePointerMovement()
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition); // 마우스 위치에서 레이 생성
@@ -226,14 +217,12 @@ public class Sylph : MonoBehaviour
             }
         }
     }
-
     private Vector2Int GetGridPosition(Vector3 worldPosition)
     {
         int x = Mathf.RoundToInt((worldPosition.x - gridOrigin.x) / cellWidth); // 월드 좌표를 그리드 x좌표로 변환
         int z = Mathf.RoundToInt((worldPosition.z - gridOrigin.z) / cellHeight); // 월드 좌표를 그리드 z좌표로 변환
         return new Vector2Int(x, z); // 그리드 좌표 반환
     }
-
     private void ActivateCell(Vector2Int targetGridPosition)
     {
         if (currentMana > 0) // 마나가 충분한 경우에만
@@ -283,11 +272,9 @@ public class Sylph : MonoBehaviour
 
                         pathLines.Add(lineIndicator);
                     }
-
                     GameObject circleIndicator = Instantiate(circlePrefab, circlePosition, Quaternion.identity);
                     pathCircles.Add(circleIndicator);
                 }
-
                 DetectCharacterInCell(targetGridPosition);
                 Debug.Log($"Mana: {currentMana}/{maxMana}");
             }
@@ -357,7 +344,7 @@ public class Sylph : MonoBehaviour
             Vector2Int cellPosition = activatedCells[i];
 
             // 목표 위치의 Y 좌표를 1.3으로 고정
-            Vector3 targetPosition = gridOrigin + new Vector3(cellPosition.x * cellWidth, 1.3f, cellPosition.y * cellHeight);
+            Vector3 targetPosition = gridOrigin + new Vector3(cellPosition.x * cellWidth, 1.1f, cellPosition.y * cellHeight);
 
             // 방향을 계산하여 y축 회전만 설정 (x축 회전 유지)
             Vector3 direction = (targetPosition - transform.position).normalized;
@@ -371,16 +358,14 @@ public class Sylph : MonoBehaviour
                     yield return null;
                 }
             }
-
             // 캐릭터가 목표 위치에 도달할 때까지 이동 (Y 좌표는 1.3으로 고정)
             while (Vector3.Distance(transform.position, targetPosition) > 0.1f)
             {
                 transform.position = Vector3.MoveTowards(transform.position, targetPosition, Time.deltaTime * 7); // 속도 조정
                 yield return null;
             }
-
-
         }
+
         uiManager.negativeEndTurnButton();
         ClearActivatedCells();
         ClearPathIndicators(); // 경로 표시 오브젝트 초기화

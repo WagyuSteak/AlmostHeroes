@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Archer : CharacterBase
 {
+    private Animator Archeranimator;
+    public GameObject ProjectilePrefab;
     protected override void Start()
     {
         base.Start();
@@ -15,12 +17,101 @@ public class Archer : CharacterBase
         {
             int damage = Damage + 1;
             ApplyDamageToTargets(damage, turnManager);
+            FireProjectile(GetGridPosition(transform.position), GetForwardDirection(), 4, ProjectilePrefab);
         }
         else if (skillNumber == 1)
         {
             int damage = Damage;
             ApplyDamageToTargets(damage, turnManager);
         }
+    }
+
+    private void FireProjectile(Vector2Int pathOrigin, Vector2Int pathDirection, int attackRange, GameObject projectilePrefab)
+    {
+        if (projectilePrefab == null)
+        {
+            Debug.LogError("Projectile prefab is null!");
+            return;
+        }
+
+        // 투사체 생성 위치 설정: Y 좌표와 방향 보정 추가
+        Vector3 spawnPosition = gridOrigin + new Vector3(pathOrigin.x * cellWidth, pathIndicatorHeight, pathOrigin.y * cellHeight);
+        Vector3 directionOffset = new Vector3(pathDirection.x * 0.5f, 0, pathDirection.y * 0.5f); // 방향으로 약간 앞 이동
+        spawnPosition += directionOffset; // 보정된 위치
+        spawnPosition.y = 1.5f; // Y 좌표 고정값
+
+        GameObject projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
+        Debug.Log($"Projectile created at {spawnPosition} with offset {directionOffset}");
+
+        // 최종 위치 계산
+        Vector2Int targetGridPosition = CalculateProjectileTarget(pathOrigin, pathDirection, attackRange);
+        Vector3 targetWorldPosition = gridOrigin + new Vector3(targetGridPosition.x * cellWidth, pathIndicatorHeight, targetGridPosition.y * cellHeight);
+
+        // 투사체 이동 시작
+        StartCoroutine(MoveProjectile(projectile, targetWorldPosition));
+    }
+
+    private Vector2Int CalculateProjectileTarget(Vector2Int pathOrigin, Vector2Int pathDirection, int attackRange)
+    {
+        Vector2Int? targetPosition = null;
+
+        for (int i = 1; i <= attackRange; i++)
+        {
+            Vector2Int position = pathOrigin + pathDirection * i;
+
+            if (!gridManager.IsWithinGridBounds(position))
+            {
+                targetPosition = pathOrigin + pathDirection * (i - 1);
+                break;
+            }
+
+            if (gridManager.IsEnemyPosition(position) || gridManager.IsCharacterPosition(position) || gridManager.IsObstaclePosition(position))
+            {
+                targetPosition = position;
+                break;
+            }
+
+            targetPosition = position; // 계속 업데이트
+        }
+
+        if (!targetPosition.HasValue)
+        {
+            targetPosition = pathOrigin + pathDirection * attackRange;
+        }
+
+        return targetPosition.Value;
+    }
+
+    private IEnumerator MoveProjectile(GameObject projectile, Vector3 targetPosition)
+    {
+        float speed = 7f; // 투사체 속도
+
+        // Y 좌표 고정
+        float fixedY = projectile.transform.position.y;
+        targetPosition.y = fixedY; // 목표 위치의 Y 좌표 고정
+
+        while (Vector3.Distance(projectile.transform.position, targetPosition) > 0.1f)
+        {
+            // 현재 Y 좌표를 유지하면서 이동
+            Vector3 currentPosition = projectile.transform.position;
+            currentPosition = Vector3.MoveTowards(currentPosition, targetPosition, speed * Time.deltaTime);
+            currentPosition.y = fixedY; // Y 좌표 고정
+            projectile.transform.position = currentPosition;
+
+            yield return null;
+        }
+
+        Destroy(projectile);
+        Debug.Log($"Projectile reached target at {targetPosition} and was destroyed");
+    }
+
+    private Vector2Int GetForwardDirection()
+    {
+        // 캐릭터가 바라보는 전방 방향 계산
+        Vector3 forward = transform.forward;
+        int x = Mathf.RoundToInt(forward.x);
+        int z = Mathf.RoundToInt(forward.z);
+        return new Vector2Int(x, z);
     }
 
     protected override void ActivateCell(Vector2Int targetGridPosition)
@@ -105,8 +196,10 @@ public class Archer : CharacterBase
         ClearIndicators(); // 기존 인디케이터 제거
         Vector2Int? primaryTargetPosition = null;
 
+        int rangeToUse = mana >= 6 ? attackRange : 1; // 약화된 관통샷은 고정된 사거리 1
+
         // 1차 범위 내에서 대상 탐색 및 인디케이터 생성
-        for (int i = 1; i <= attackRange; i++)
+        for (int i = 1; i <= rangeToUse; i++)
         {
             Vector2Int position = pathOrigin + pathDirection * i;
 
@@ -118,7 +211,7 @@ public class Archer : CharacterBase
             }
 
             // 대상 감지 후 처리
-            if (gridManager.IsEnemyPosition(position) || gridManager.IsCharacterPosition(position) || gridManager.IsSylphPosition(position))
+            if (gridManager.IsEnemyPosition(position) || gridManager.IsCharacterPosition(position) || gridManager.IsSylphPosition(position) || gridManager.IsObstaclePosition(position))
             {
                 primaryTargetPosition = position;
                 break;
@@ -130,9 +223,10 @@ public class Archer : CharacterBase
         // 대상이 없으면 최대 사거리 위치로 설정
         if (!primaryTargetPosition.HasValue)
         {
-            primaryTargetPosition = pathOrigin + pathDirection * attackRange;
+            primaryTargetPosition = pathOrigin + pathDirection * rangeToUse;
         }
 
+        // 2차 범위 계산
         List<Vector2Int> secondaryPositions;
         if (mana >= 6)
         {

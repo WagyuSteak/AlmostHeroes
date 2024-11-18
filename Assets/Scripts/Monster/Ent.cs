@@ -13,17 +13,13 @@ public class Ent : EnemyBase
         base.Start();
 
         HP = 3; // Set health points
-        MoveCount = 2; // Set number of tiles the enemy can move
-        AttackDamage = 1; // You can adjust attack damage here if needed
+        MaxMoveCount = 2; // Set number of tiles the enemy can move
+        AttackDamage = 0; // You can adjust attack damage here if needed
+        moveSpeed = 3f;
+        DetectRange = 2;
+        AttackRange = 1;
 
         FindObjectOfType<TurnManager>().RegisterEnemy(this);
     }
 
-    // 적이 죽을 때 처리할 로직
-    protected override void Die()
-    {
-        // 죽음 처리 로직 (예: 파괴, 효과 등)
-        Destroy(gameObject);
-        Debug.Log($"{gameObject.name} has been destroyed!");
-    }
 }
