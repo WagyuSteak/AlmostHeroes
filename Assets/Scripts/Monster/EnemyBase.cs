@@ -33,12 +33,9 @@ public abstract class EnemyBase : MonoBehaviour
     protected GridManager gridManager;
     public CharacterBase Target; // The current target
 
-<<<<<<< Updated upstream
-    private List<Vector2Int> previousHighlightedCells = new List<Vector2Int>(); // Track previously highlighted cells
-=======
+
     private bool isDead = false;
     public List<Vector2Int> previousHighlightedCells = new List<Vector2Int>(); // Track previously highlighted cells
->>>>>>> Stashed changes
     private Vector2Int calculatedIntermediatePosition; // New variable for storing intermediate position
     private List<Vector2Int> storedPath;
 
@@ -812,12 +809,8 @@ public abstract class EnemyBase : MonoBehaviour
         animator.SetBool("isAttacking", false);
     }
 
-<<<<<<< Updated upstream
-    // 데미지를 받는 메서드
-    public void TakeDamage(int damageAmount)
-=======
+
     public virtual void TakeDamage(int damageAmount)
->>>>>>> Stashed changes
     {
         HP -= damageAmount;
         if (HP <= 0)
