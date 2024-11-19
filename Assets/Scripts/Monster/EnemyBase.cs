@@ -34,8 +34,9 @@ public abstract class EnemyBase : MonoBehaviour
     public CharacterBase Target; // The current target
 
     private bool isDead = false;
-    private List<Vector2Int> previousHighlightedCells = new List<Vector2Int>(); // Track previously highlighted cells
+    public List<Vector2Int> previousHighlightedCells = new List<Vector2Int>(); // Track previously highlighted cells
     private Vector2Int calculatedIntermediatePosition; // New variable for storing intermediate position
+    private List<Vector2Int> storedPath;
 
     private Animator animator;
 
@@ -458,7 +459,7 @@ public abstract class EnemyBase : MonoBehaviour
                 Renderer cellRenderer = gridManager.gridCells[position].GetComponent<Renderer>();
                 if (cellRenderer != null)
                 {
-                    cellRenderer.material.color = Color.red; // Set a different color for alternative path
+                    cellRenderer.material.color = Color.green; // Set a different color for alternative path
                     previousHighlightedCells.Add(position);
                 }
             }
@@ -510,6 +511,7 @@ public abstract class EnemyBase : MonoBehaviour
             {
                 intermediatePoint = GetIntermediatePoint(alternativePath);
                 HighlightAlternativePath(alternativePath, intermediatePoint); // Custom highlight for alternative path
+                storedPath = alternativePath;
                 return intermediatePoint;
             }
             else
@@ -517,12 +519,13 @@ public abstract class EnemyBase : MonoBehaviour
                 // If no alternative path is found, remain in the current position
                 intermediatePoint = CurrentGridPosition;
             }
+            storedPath = CalculatePathToTarget(CurrentGridPosition, intermediatePoint);
         }
 
         // Highlight the path to the final intermediate point
         HighlightPath(path, intermediatePoint);
-
         calculatedIntermediatePosition = intermediatePoint;
+        storedPath = CalculatePathToTarget(CurrentGridPosition, intermediatePoint);
 
         // Return the calculated intermediate position
         return intermediatePoint;
@@ -592,28 +595,35 @@ public abstract class EnemyBase : MonoBehaviour
 
     public IEnumerator MoveToCalculatedPosition(Vector2Int intermediatePoint)
     {
-        Vector2Int currentGridPosition = CurrentGridPosition;
-        List<Vector2Int> path = CalculatePathToTarget(CurrentGridPosition, intermediatePoint); // Get path to the target
-
-        if (path == null || path.Count == 0)
+        if (storedPath == null || storedPath.Count == 0)
         {
             Debug.Log("No valid path found to the intermediate point.");
             yield break; // Exit if no path is found
         }
 
+        Vector2Int currentGridPosition = CurrentGridPosition;
+
         // Skip the first grid (current position) and start moving from the next grid
-        if (path.Count > 1)
+        if (storedPath.Count > 1)
         {
-            path.RemoveAt(0); // Remove the first element if it's the current position
+            storedPath.RemoveAt(0); // Remove the first element if it's the current position
         }
 
-        foreach (Vector2Int nextGrid in path)
+        foreach (Vector2Int nextGrid in storedPath)
         {
             // If MoveCount is 0, stop moving immediately
             if (MoveCount <= 0)
             {
                 break;
             }
+
+            // Check if nextGrid is diagonal
+            if (Mathf.Abs(nextGrid.x - currentGridPosition.x) > 1 || Mathf.Abs(nextGrid.y - currentGridPosition.y) > 1)
+            {
+                Debug.Log($"Skipping diagonal move to {nextGrid}");
+                continue; // Skip this grid position if it's diagonal
+            }
+
 
             // Trigger move animation before starting to move towards next grid
             if (animator != null)
@@ -664,7 +674,14 @@ public abstract class EnemyBase : MonoBehaviour
             // Move one grid cell at a time
             while (Vector3.Distance(transform.position, targetWorldPosition) > 0.01f)
             {
-                transform.position = Vector3.MoveTowards(transform.position, targetWorldPosition, Time.deltaTime * moveSpeed);
+                Vector3 moveDirection = (targetWorldPosition - transform.position).normalized;
+                Vector3 step = new Vector3(
+                    Mathf.Round(moveDirection.x),
+                    0,
+                    Mathf.Round(moveDirection.z)
+                ); // Only move in cardinal directions
+
+                transform.position = Vector3.MoveTowards(transform.position, transform.position + step, Time.deltaTime * moveSpeed);
                 yield return null;
             }
 
@@ -695,8 +712,6 @@ public abstract class EnemyBase : MonoBehaviour
                 break;
             }
         }
-
-        ClearHighlightedCells();
 
         // Ensure move animation is stopped at the end
         if (animator != null)
@@ -742,7 +757,7 @@ public abstract class EnemyBase : MonoBehaviour
         return false; // No characters in attack range
     }
 
-    public IEnumerator HandleAttackIfInRange()
+    public virtual IEnumerator HandleAttackIfInRange()
     {
         // Detect all characters within attack range
         List<CharacterBase> charactersInRange = GetCharactersInAttackRange();
@@ -781,7 +796,7 @@ public abstract class EnemyBase : MonoBehaviour
         }
     }
 
-    public List<CharacterBase> GetCharactersInAttackRange()
+    public virtual List<CharacterBase> GetCharactersInAttackRange()
     {
         List<CharacterBase> charactersInRange = new List<CharacterBase>();
         Vector2Int[] directions = {
@@ -816,7 +831,7 @@ public abstract class EnemyBase : MonoBehaviour
         animator.SetBool("isAttacking", false);
     }
 
-    public void TakeDamage(int damageAmount)
+    public virtual void TakeDamage(int damageAmount)
     {
         if (damageAmount <= 0 || HP <= 0) return;
 

@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1001 &8665352936474774952
+--- !u!1001 &8644012054507283849
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -22,7 +22,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b67d3a6f6db615449a479f32fd887135, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 8.617744
+      value: -38.10984
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b67d3a6f6db615449a479f32fd887135, type: 3}
       propertyPath: m_LocalPosition.y
@@ -30,7 +30,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b67d3a6f6db615449a479f32fd887135, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 4.0655565
+      value: 2.7593577
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: b67d3a6f6db615449a479f32fd887135, type: 3}
       propertyPath: m_LocalRotation.w
@@ -71,60 +71,5 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b67d3a6f6db615449a479f32fd887135, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 9213260019651122190}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b67d3a6f6db615449a479f32fd887135, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 8930959908604196774}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b67d3a6f6db615449a479f32fd887135, type: 3}
---- !u!1 &8394970583006884089 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: b67d3a6f6db615449a479f32fd887135, type: 3}
-  m_PrefabInstance: {fileID: 8665352936474774952}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &9213260019651122190
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8394970583006884089}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a340672b0c1d1fc4482811e38035f4e3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  HP: 0
-  MoveCount: 0
-  AttackDamage: 0
-  DetectRange: 0
-  AttackRange: 0
-  moveSpeed: 0
-  rotationSpeed: 20
-  CurrentGridPosition: {x: 0, y: 0}
-  Target: {fileID: 0}
-  Health: 0
-  MaxHealth: 0
---- !u!95 &8930959908604196774
-Animator:
-  serializedVersion: 5
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8394970583006884089}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 8b0385a6aad8865478dfa5965937bff5, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0

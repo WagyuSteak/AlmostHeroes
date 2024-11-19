@@ -347,6 +347,7 @@ public class TurnManager : MonoBehaviour
     }
     public void EnemyTurn()
     {
+        ClearAllEnemyHighlightedCells();
         Debug.Log("적 턴이 시작됩니다.");
         StartCoroutine(HandleEnemyMovement());
     }
@@ -374,6 +375,23 @@ public class TurnManager : MonoBehaviour
 
             // Handle attack if in range
             yield return StartCoroutine(enemy.HandleAttackIfInRange());
+        }
+    }
+
+    private void ClearAllEnemyHighlightedCells()
+    {
+        // Combine all enemy lists
+        List<EnemyBase> allEnemies = new List<EnemyBase>();
+        allEnemies.AddRange(specialEnts);
+        allEnemies.AddRange(ents);
+        allEnemies.AddRange(fireSlimes);
+        allEnemies.AddRange(slimes);
+        allEnemies.AddRange(ghosts);
+
+        // Clear highlighted cells for each enemy
+        foreach (EnemyBase enemy in allEnemies)
+        {
+            enemy.ClearHighlightedCells();
         }
     }
 
