@@ -66,7 +66,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 199b914f3e47fe0429eac922ccda3d81, type: 3}
       propertyPath: m_Name
-      value: magician
+      value: Magician
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -160,8 +160,8 @@ MonoBehaviour:
   currentGridPosition: {x: 0, y: 0}
   startGridPosition: {x: 0, y: 0}
   isMyTurn: 0
-  skill1ProjectilePrefab: {fileID: 3376253060253397786, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
-  skill2ProjectilePrefab: {fileID: 3376253060253397786, guid: 9a114389571e562418fded5a3f14d65e, type: 3}
+  skill1ProjectilePrefab: {fileID: 575203646213474016, guid: 0d0cc857d70201d4e9a5c09429d68300, type: 3}
+  skill2ProjectilePrefab: {fileID: 5942311088176375803, guid: 1ff5010814286c84b8837779d15700a0, type: 3}
 --- !u!65 &8924216477103012210
 BoxCollider:
   m_ObjectHideFlags: 0
